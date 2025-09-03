@@ -1,4 +1,4 @@
-package repository;
+package com.app.pki_backend.repository;
 
 import com.app.pki_backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
