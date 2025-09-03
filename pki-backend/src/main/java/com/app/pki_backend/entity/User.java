@@ -32,7 +32,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String surname;
     @Column(name = "role", insertable = false, updatable = false)
-    private String role;
+    private String role; // read only
     private LocalDateTime suspendedSince;
 
     @Override
