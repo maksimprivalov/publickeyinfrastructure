@@ -13,7 +13,6 @@ import java.util.List;
 
 import static jakarta.persistence.DiscriminatorType.STRING;
 
-@Data
 @Entity
 @Table(name = "users")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
@@ -35,6 +34,54 @@ public class User implements UserDetails {
     private String role; // read only
     private LocalDateTime suspendedSince;
 
+    public Integer getId() {
+        return id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getSurname() {
+        return surname;
+    }
+
+    public void setSurname(String surname) {
+        this.surname = surname;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public LocalDateTime getSuspendedSince() {
+        return suspendedSince;
+    }
+
+    public void setSuspendedSince(LocalDateTime suspendedSince) {
+        this.suspendedSince = suspendedSince;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
@@ -44,4 +91,29 @@ public class User implements UserDetails {
     public String getUsername() {
         return email;
     }
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return suspendedSince == null;
+    }
+
 }
