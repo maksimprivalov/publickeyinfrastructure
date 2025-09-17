@@ -1,5 +1,6 @@
-package com.app.pki_backend.entity;
+package com.app.pki_backend.entity.certificates;
 
+import com.app.pki_backend.entity.user.User;
 import jakarta.persistence.*;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
@@ -16,19 +17,19 @@ public class Certificate {
     private BigInteger serialNumber;
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String subject; // X500Name в строковом формате
+    private String subject; // X500Name in string format
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String issuer; // X500Name в строковом формате
+    private String issuer; // X500Name in string format
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String publicKey;
 
     @Column(columnDefinition = "TEXT")
-    private String encryptedPrivateKey; // Зашифрованный приватный ключ
+    private String encryptedPrivateKey; // EncryptedPrivateKeyInfo in string format
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String certificateData; // PEM формат сертификата
+    private String certificateData; // PEM format certificate data
 
     @Column(nullable = false)
     private LocalDateTime validFrom;
@@ -50,13 +51,13 @@ public class Certificate {
 
     @ManyToOne
     @JoinColumn(name = "issuer_certificate_id")
-    private Certificate issuerCertificate; // Ссылка на сертификат-издатель
+    private Certificate issuerCertificate;
 
     @OneToMany(mappedBy = "issuerCertificate", cascade = CascadeType.ALL)
-    private List<Certificate> issuedCertificates; // Сертификаты, выпущенные этим CA
+    private List<Certificate> issuedCertificates; // Certificates issued by this certificate
 
     @Column(columnDefinition = "TEXT")
-    private String extensions; // JSON строка с расширениями
+    private String extensions; // JSON string representing extensions
 
     @Column(nullable = false)
     private String organization;
@@ -64,10 +65,8 @@ public class Certificate {
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // Конструкторы
     public Certificate() {}
 
-    // Getters и Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -120,14 +119,6 @@ public class Certificate {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
 
-enum CertificateType {
-    ROOT_CA,
-    INTERMEDIATE_CA,
-    END_ENTITY
-}
 
-enum CertificateStatus {
-    ACTIVE,
-    REVOKED,
-    EXPIRED
-}
+
+

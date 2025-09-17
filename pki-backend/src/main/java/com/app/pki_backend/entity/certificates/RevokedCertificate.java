@@ -1,5 +1,6 @@
-package com.app.pki_backend.entity;
+package com.app.pki_backend.entity.certificates;
 
+import com.app.pki_backend.entity.user.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -25,10 +26,8 @@ public class RevokedCertificate {
     @JoinColumn(name = "revoked_by", nullable = false)
     private User revokedBy;
 
-    // Конструкторы
     public RevokedCertificate() {}
 
-    // Getters и Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -45,15 +44,4 @@ public class RevokedCertificate {
     public void setRevokedBy(User revokedBy) { this.revokedBy = revokedBy; }
 }
 
-enum RevocationReason {
-    UNSPECIFIED,
-    KEY_COMPROMISE,
-    CA_COMPROMISE,
-    AFFILIATION_CHANGED,
-    SUPERSEDED,
-    CESSATION_OF_OPERATION,
-    CERTIFICATE_HOLD,
-    REMOVE_FROM_CRL,
-    PRIVILEGE_WITHDRAWN,
-    AA_COMPROMISE
-}
+

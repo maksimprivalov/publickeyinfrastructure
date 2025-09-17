@@ -1,5 +1,6 @@
-package com.app.pki_backend.entity;
+package com.app.pki_backend.entity.certificates;
 
+import com.app.pki_backend.entity.user.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -18,31 +19,29 @@ public class CertificateTemplate {
     private Certificate caIssuer;
 
     @Column(name = "cn_regex")
-    private String cnRegex; // Регулярное выражение для валидации CN
+    private String cnRegex; // regex for CN
 
     @Column(name = "san_regex")
-    private String sanRegex; // Регулярное выражение для SAN
+    private String sanRegex; // regex for SAN
 
     @Column(name = "max_ttl_days")
-    private Integer maxTtlDays; // Максимальное время жизни в днях
+    private Integer maxTtlDays; // Max TTL in days (time to live)
 
     @Column(name = "default_key_usage", columnDefinition = "TEXT")
-    private String defaultKeyUsage; // JSON строка
+    private String defaultKeyUsage; // JSON string
 
     @Column(name = "default_extended_key_usage", columnDefinition = "TEXT")
-    private String defaultExtendedKeyUsage; // JSON строка
+    private String defaultExtendedKeyUsage; // JSON string
 
     @ManyToOne
     @JoinColumn(name = "owner_id", nullable = false)
-    private User owner; // CA пользователь, создавший шаблон
+    private User owner; // CA user, created this template
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // Конструкторы
     public CertificateTemplate() {}
 
-    // Getters и Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
