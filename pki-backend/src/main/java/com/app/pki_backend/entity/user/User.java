@@ -1,8 +1,7 @@
-package com.app.pki_backend.entity;
+package com.app.pki_backend.entity.user;
 
 
 import jakarta.persistence.*;
-import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
