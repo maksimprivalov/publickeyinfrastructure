@@ -1,5 +1,7 @@
-package com.app.pki_backend.entity;
+package com.app.pki_backend.dto.certificate;
 
+import com.app.pki_backend.entity.certificates.Certificate;
+import com.app.pki_backend.entity.user.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -11,7 +13,7 @@ public class CertificateSigningRequest {
     private Long id;
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String csrContent; // CSR в PEM формате
+    private String csrContent; // CSR in PEM format
 
     @ManyToOne
     @JoinColumn(name = "requested_by", nullable = false)
@@ -33,15 +35,13 @@ public class CertificateSigningRequest {
 
     @ManyToOne
     @JoinColumn(name = "issued_certificate_id")
-    private Certificate issuedCertificate; // Ссылка на выпущенный сертификат
+    private Certificate issuedCertificate; // Id of issued certificate if status is ISSUED
 
     @Column(columnDefinition = "TEXT")
-    private String rejectionReason; // Причина отклонения, если статус REJECTED
+    private String rejectionReason; // Rejection reason if status is REJECTED
 
-    // Конструкторы
     public CertificateSigningRequest() {}
 
-    // Getters и Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -68,10 +68,4 @@ public class CertificateSigningRequest {
 
     public String getRejectionReason() { return rejectionReason; }
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
-}
-
-enum CSRStatus {
-    PENDING,
-    APPROVED,
-    REJECTED
 }
