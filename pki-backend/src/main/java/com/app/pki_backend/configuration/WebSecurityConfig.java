@@ -66,7 +66,8 @@ public class WebSecurityConfig{
         http.exceptionHandling(exceptionHandling -> exceptionHandling.authenticationEntryPoint(restAuthenticationEntryPoint));
         http.authorizeHttpRequests(request -> {
             request.requestMatchers(new AntPathRequestMatcher("/api/users/login")).permitAll()
-
+                    .requestMatchers(new AntPathRequestMatcher("/api/users/register")).permitAll()
+                    .requestMatchers(new AntPathRequestMatcher("/api/users/activate")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
                     .anyRequest().authenticated();
         });
