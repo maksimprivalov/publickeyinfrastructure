@@ -12,7 +12,9 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.HttpServletRequest;
-
+import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -42,6 +44,10 @@ public class TokenUtils {
 
     private SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS512;
 
+    private Key getSigningKey() {
+        return Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    }
+
     public String generateToken(User user) {
         return Jwts.builder()
                 .setIssuer(APP_NAME)
@@ -52,9 +58,10 @@ public class TokenUtils {
                 .claim("userId", user.getId())
                 .claim("type", "access")
                 .setExpiration(generateExpirationDate())
-                .signWith(SIGNATURE_ALGORITHM, SECRET).compact();
-
+                .signWith(getSigningKey(), SIGNATURE_ALGORITHM) // ✅ новый синтаксис
+                .compact();
     }
+
     public String generateRefreshToken(User user) {
         return Jwts.builder()
                 .setIssuer(APP_NAME)
@@ -62,7 +69,8 @@ public class TokenUtils {
                 .setIssuedAt(new Date())
                 .claim("type", "refresh")
                 .setExpiration(generateRefreshExpirationDate())
-                .signWith(SIGNATURE_ALGORITHM, SECRET).compact();
+                .signWith(getSigningKey(), SIGNATURE_ALGORITHM) // ✅
+                .compact();
     }
 
     private Date generateRefreshExpirationDate() {
@@ -145,8 +153,9 @@ public class TokenUtils {
     }
 
     private Claims getAllClaimsFromToken(String token) {
-        return Jwts.parser()
-                .setSigningKey(SECRET)
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
