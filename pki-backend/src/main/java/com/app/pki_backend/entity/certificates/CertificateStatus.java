@@ -1,6 +1,6 @@
 package com.app.pki_backend.entity.certificates;
 
-enum CertificateStatus {
+public enum CertificateStatus {
     ACTIVE,
     REVOKED,
     EXPIRED
