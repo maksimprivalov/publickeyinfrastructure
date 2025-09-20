@@ -1,7 +1,7 @@
 package com.app.pki_backend.controller;
 
-import com.app.pki_backend.dto.LoginRequestDTO;
-import com.app.pki_backend.dto.TokenDTO;
+import com.app.pki_backend.dto.user.LoginRequestDTO;
+import com.app.pki_backend.dto.user.TokenDTO;
 import com.app.pki_backend.service.interfaces.UserService;
 import com.app.pki_backend.util.TokenUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,8 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import com.app.pki_backend.dto.RegistrationRequestDTO;
-import com.app.pki_backend.entity.User;
+import com.app.pki_backend.dto.user.RegistrationRequestDTO;
+import com.app.pki_backend.entity.user.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

@@ -1,5 +1,6 @@
 package com.app.pki_backend.entity;
 
+import com.app.pki_backend.entity.user.User;
 import jakarta.persistence.*;
 import lombok.Data;
 

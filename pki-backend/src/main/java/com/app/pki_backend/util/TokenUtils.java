@@ -1,6 +1,6 @@
 package com.app.pki_backend.util;
 
-import com.app.pki_backend.entity.User;
+import com.app.pki_backend.entity.user.User;
 import com.app.pki_backend.service.interfaces.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +16,6 @@ import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Date;
 
 @Component

@@ -1,7 +1,7 @@
 package com.app.pki_backend.service.implementations;
 
 import com.app.pki_backend.entity.ActivationToken;
-import com.app.pki_backend.entity.User;
+import com.app.pki_backend.entity.user.User;
 import com.app.pki_backend.repository.ActivationTokenRepository;
 import com.app.pki_backend.service.interfaces.ActivationTokenService;
 import org.springframework.beans.factory.annotation.Autowired;

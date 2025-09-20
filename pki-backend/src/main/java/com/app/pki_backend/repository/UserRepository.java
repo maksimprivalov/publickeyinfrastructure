@@ -1,6 +1,6 @@
 package com.app.pki_backend.repository;
 
-import com.app.pki_backend.entity.User;
+import com.app.pki_backend.entity.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

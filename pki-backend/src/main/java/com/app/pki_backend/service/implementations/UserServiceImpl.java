@@ -1,16 +1,17 @@
 package com.app.pki_backend.service.implementations;
 
-import com.app.pki_backend.dto.RegistrationRequestDTO;
+import com.app.pki_backend.entity.user.User;
+import com.app.pki_backend.service.interfaces.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.app.pki_backend.dto.user.RegistrationRequestDTO;
 import com.app.pki_backend.entity.ActivationToken;
-import com.app.pki_backend.entity.User;
+
 import com.app.pki_backend.repository.UserRepository;
 import com.app.pki_backend.service.interfaces.ActivationTokenService;
-import com.app.pki_backend.service.interfaces.UserService;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Service;
 
 import java.util.Objects;
 

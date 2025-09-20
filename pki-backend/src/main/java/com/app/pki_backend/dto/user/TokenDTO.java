@@ -1,4 +1,4 @@
-package com.app.pki_backend.dto;
+package com.app.pki_backend.dto.user;
 
 public class TokenDTO {
     private String token;
