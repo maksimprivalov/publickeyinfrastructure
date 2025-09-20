@@ -58,7 +58,7 @@ public class TokenUtils {
                 .claim("userId", user.getId())
                 .claim("type", "access")
                 .setExpiration(generateExpirationDate())
-                .signWith(getSigningKey(), SIGNATURE_ALGORITHM) // ✅ новый синтаксис
+                .signWith(getSigningKey(), SIGNATURE_ALGORITHM)
                 .compact();
     }
 
@@ -69,7 +69,7 @@ public class TokenUtils {
                 .setIssuedAt(new Date())
                 .claim("type", "refresh")
                 .setExpiration(generateRefreshExpirationDate())
-                .signWith(getSigningKey(), SIGNATURE_ALGORITHM) // ✅
+                .signWith(getSigningKey(), SIGNATURE_ALGORITHM)
                 .compact();
     }
 
