@@ -21,7 +21,7 @@ public class Organization {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String encryptionKey; // Encryption key for organization
 
-    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "organizationName", cascade = CascadeType.ALL)
     private List<User> users; // Users belonging to this organization
 
     @Column(nullable = false)
