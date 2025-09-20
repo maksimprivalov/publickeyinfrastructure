@@ -29,9 +29,21 @@ public class User implements UserDetails {
     private String name;
     @Column(nullable = false)
     private String surname;
+    @Column(nullable = false)
+    private String organizationName;
+    @Column(nullable = false)
+    private Boolean isActive = false;;
     @Column(name = "role", insertable = false, updatable = false)
     private String role; // read only
     private LocalDateTime suspendedSince;
+
+    public Boolean getActive() {
+        return isActive;
+    }
+
+    public void setActive(Boolean active) {
+        isActive = active;
+    }
 
     public Integer getId() {
         return id;
@@ -84,6 +96,14 @@ public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+    }
+
+    public String getOrganizationName() {
+        return organizationName;
+    }
+
+    public void setOrganizationName(String organizationName) {
+        this.organizationName = organizationName;
     }
 
     @Override
