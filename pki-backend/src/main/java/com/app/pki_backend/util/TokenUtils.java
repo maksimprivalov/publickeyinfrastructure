@@ -23,7 +23,7 @@ public class TokenUtils {
     @Value("PKI")
     private String APP_NAME;
 
-    @Value("somesecret")
+    @Value("${jwt.secret}")
     public String SECRET;
 
     @Value("18000000")
