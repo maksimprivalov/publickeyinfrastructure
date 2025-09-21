@@ -3,8 +3,10 @@ package com.app.pki_backend.service.interfaces;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 
+import javax.crypto.SecretKey;
 import java.security.KeyPair;
 import java.math.BigInteger;
+import java.security.PrivateKey;
 
 /**
  * Service interface for low-level cryptographic operations.
@@ -31,5 +33,27 @@ public interface CryptographyService {
      * @return Subject Key Identifier.
      */
     SubjectKeyIdentifier createSubjectKeyIdentifier(SubjectPublicKeyInfo publicKeyInfo);
+
+    /**
+     * Encrypt private key with AES encryption.
+     * @param privateKey
+     * @param encryptionKey
+     * @return encrypted private key in Base64 format
+     */
+    String encryptPrivateKey(PrivateKey privateKey, SecretKey encryptionKey);
+
+    /**
+     * Decrypt private key with AES encryption.
+     * @param encryptedData
+     * @param encryptionKey
+     * @return decrypted private key
+     */
+    PrivateKey decryptPrivateKey(String encryptedData, SecretKey encryptionKey);
+
+    /**
+     * Generate AES key.
+     * @return AES key
+     */
+    SecretKey generateAESKey();
 
 }
