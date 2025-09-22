@@ -11,6 +11,7 @@ import CertificateUpload from './pages/CertificateUpload';
 import Revocation from './pages/Revocation';
 import UserManagement from './pages/UserManagement';
 import CAManagement from './pages/CAManagement';
+import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import MainLayout from './components/layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -103,6 +104,14 @@ const paths: RouteObject[] = [
     element: (
       <ProtectedRoute allowedRoles={['CAUser']}>
         <MainLayout><Revocation /></MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/profile',
+    element: (
+      <ProtectedRoute allowedRoles={['Admin', 'CAUser', 'User']}>
+        <MainLayout><Profile /></MainLayout>
       </ProtectedRoute>
     ),
   },
