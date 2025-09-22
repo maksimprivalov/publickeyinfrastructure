@@ -68,9 +68,11 @@ public class WebSecurityConfig{
             request.requestMatchers(new AntPathRequestMatcher("/api/users/login")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/api/users/register")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/api/users/activate")).permitAll()
+                    .requestMatchers(new AntPathRequestMatcher("/api/users/logout")).authenticated()
                     .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
                     .anyRequest().authenticated();
         });
+        http.logout(logout -> logout.disable());
         http.addFilterBefore(new TokenAuthenticationFilter(tokenUtils, userDetailsService()), UsernamePasswordAuthenticationFilter.class);
         http.authenticationProvider(authenticationProvider());
         return http.build();

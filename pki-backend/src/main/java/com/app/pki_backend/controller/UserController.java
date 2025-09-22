@@ -6,6 +6,7 @@ import com.app.pki_backend.entity.RefreshToken;
 import com.app.pki_backend.service.interfaces.RefreshTokenService;
 import com.app.pki_backend.service.interfaces.UserService;
 import com.app.pki_backend.util.TokenUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -106,13 +107,30 @@ public class UserController {
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token"));
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestParam("userId") Integer userId) {
-        User user = userService.findById(userId);
-        refreshTokenService.deleteByUser(user);
-        return ResponseEntity.ok("Logged out successfully, refresh token revoked");
+//    @PostMapping("/logout")
+//    public ResponseEntity<?> logout(@RequestParam("userId") Integer userId) {
+//        User user = userService.findById(userId);
+//        refreshTokenService.deleteByUser(user);
+//        return ResponseEntity.ok("Logged out successfully, refresh token revoked");
+//    }
+@PostMapping("/logout")
+public ResponseEntity<String> logout(HttpServletRequest request) {
+    String token = tokenUtils.getToken(request);
+    if (token == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No token provided");
     }
 
+    String email = tokenUtils.getUsernameFromToken(token);
+    User user = userService.findByEmail(email);
+
+    if (user == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+    }
+
+    refreshTokenService.deleteByUser(user);
+
+    return ResponseEntity.ok("Logged out successfully");
+}
 
 
 }
