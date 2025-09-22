@@ -2,7 +2,9 @@ package com.app.pki_backend.controller;
 
 import com.app.pki_backend.dto.certificate.CertificateSigningRequest;
 import com.app.pki_backend.entity.certificates.Certificate;
+import com.app.pki_backend.entity.certificates.CertificateStatus;
 import com.app.pki_backend.entity.certificates.CertificateTemplate;
+import com.app.pki_backend.entity.certificates.CertificateType;
 import com.app.pki_backend.entity.user.User;
 import com.app.pki_backend.service.implementations.CertificateServiceImpl;
 import com.app.pki_backend.service.implementations.CertificateTemplateServiceImpl;
@@ -11,6 +13,8 @@ import com.app.pki_backend.service.interfaces.UserService;
 import com.app.pki_backend.util.TokenUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,6 +23,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 @RestController
@@ -203,5 +209,16 @@ public class CertificateController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
+    @GetMapping("/search")
+    public ResponseEntity<Page<Certificate>> searchCertificates(
+            @RequestParam(required = false) CertificateStatus status,
+            @RequestParam(required = false) CertificateType type,
+            @RequestParam(required = false) String organization,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Certificate> result = certificateService.search(status, type, organization, pageable);
+        return ResponseEntity.ok(result);
+    }
 }
