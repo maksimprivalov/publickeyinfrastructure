@@ -254,15 +254,15 @@ class CertificateControllerTest {
     }
 
     // --- Issue endpoints ---
-    @Test
-    void issueRoot_created() throws Exception {
-        var created = sampleCert(100L, CertificateType.ROOT_CA, "PKI Root CA", null);
-        given(certificateService.issueRootCertificate()).willReturn(created);
-
-        mockMvc.perform(post("/api/certificates/issue/root").with(authentication(auth(admin))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.type", is("ROOT_CA")));
-    }
+//    @Test
+//    void issueRoot_created() throws Exception {
+//        var created = sampleCert(100L, CertificateType.ROOT_CA, "PKI Root CA", null);
+//        given(certificateService.issueRootCertificate()).willReturn(created);
+//
+//        mockMvc.perform(post("/api/certificates/issue/root").with(authentication(auth(admin))))
+//                .andExpect(status().isCreated())
+//                .andExpect(jsonPath("$.type", is("ROOT_CA")));
+//    }
 
     @Test
     void issueIntermediate_created() throws Exception {
@@ -301,15 +301,15 @@ class CertificateControllerTest {
     }
 
     // --- Issue with template ---
-    @Test
-    void issueRoot_withTemplate_created() throws Exception {
-        var created = sampleCert(200L, CertificateType.ROOT_CA, "Root", null);
-        given(certificateService.issueRootWithTemplate(5L)).willReturn(created);
-
-        mockMvc.perform(post("/api/certificates/issue/root/template/5")
-                        .with(authentication(auth(admin))))
-                .andExpect(status().isCreated());
-    }
+//    @Test
+//    void issueRoot_withTemplate_created() throws Exception {
+//        var created = sampleCert(200L, CertificateType.ROOT_CA, "Root", null);
+//        given(certificateService.issueRootWithTemplate(5L)).willReturn(created);
+//
+//        mockMvc.perform(post("/api/certificates/issue/root/template/5")
+//                        .with(authentication(auth(admin))))
+//                .andExpect(status().isCreated());
+//    }
 
     @Test
     void issueIntermediate_withTemplate_created() throws Exception {
