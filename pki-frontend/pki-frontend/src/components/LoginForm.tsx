@@ -26,6 +26,7 @@ export const LoginForm = () => {
     onSuccess: (response: any) => {
       const { accessToken, refreshToken } = response.data;
       if (accessToken && refreshToken) {
+        console.log(accessToken)
         localStorage.setItem('access_token', accessToken);
         localStorage.setItem('refresh_token', refreshToken);
         history.navigate("/"); // Redirect to home
