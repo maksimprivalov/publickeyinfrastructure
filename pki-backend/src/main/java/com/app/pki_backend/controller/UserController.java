@@ -2,6 +2,8 @@ package com.app.pki_backend.controller;
 
 import com.app.pki_backend.dto.user.LoginRequestDTO;
 import com.app.pki_backend.dto.user.TokenDTO;
+import com.app.pki_backend.entity.RefreshToken;
+import com.app.pki_backend.service.interfaces.RefreshTokenService;
 import com.app.pki_backend.service.interfaces.UserService;
 import com.app.pki_backend.util.TokenUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -30,6 +33,8 @@ public class UserController {
     private AuthenticationManager authenticationManager;
     @Autowired
     private TokenUtils tokenUtils;
+    @Autowired
+    private RefreshTokenService refreshTokenService;
     public static BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@RequestBody RegistrationRequestDTO registrationRequestDTO) {
@@ -77,15 +82,37 @@ public class UserController {
 
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(loginRequest.getEmail());
 
-            String tokenValue = this.tokenUtils.generateToken((User) userDetails);
+            String accessToken = this.tokenUtils.generateToken((User) userDetails);
 
-            TokenDTO token = new TokenDTO();
-            token.setToken(tokenValue);
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
-            return ResponseEntity.ok(token);
+            return ResponseEntity.ok(new TokenDTO(accessToken, refreshToken.getToken()));
+
 
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Wrong password!");
         }
     }
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestParam("refreshToken") String requestToken) {
+        return refreshTokenService.findByToken(requestToken)
+                .map(refreshToken -> {
+                    if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token expired");
+                    }
+                    String newAccessToken = tokenUtils.generateToken(refreshToken.getUser());
+                    return ResponseEntity.ok(new TokenDTO(newAccessToken, requestToken));
+                })
+                .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestParam("userId") Integer userId) {
+        User user = userService.findById(userId);
+        refreshTokenService.deleteByUser(user);
+        return ResponseEntity.ok("Logged out successfully, refresh token revoked");
+    }
+
+
+
 }
