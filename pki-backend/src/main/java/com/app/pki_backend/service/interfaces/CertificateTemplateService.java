@@ -10,20 +10,12 @@ import com.app.pki_backend.entity.certificates.CertificateTemplate;
 
 public interface CertificateTemplateService {
 
-    /**
-     * Apply template to CSR.
-     * @param csr
-     * @param template
-     * @return CertificateSigningRequest with applied template.
-     */
+    CertificateTemplate findById(Long id);
+    CertificateTemplate createTemplate(CertificateTemplate template);
+    java.util.List<CertificateTemplate> getAllTemplates();
+    void deleteTemplate(Integer id);
+
     CertificateSigningRequest applyTemplate(CertificateSigningRequest csr, CertificateTemplate template);
 
-    /**
-     * Validate CSR against template.
-     * @param csr
-     * @param template
-     * @return true if valid, false otherwise
-     */
     boolean validateAgainstTemplate(CertificateSigningRequest csr, CertificateTemplate template);
-
 }

@@ -3,7 +3,9 @@ package com.app.pki_backend.service.implementations;
 import com.app.pki_backend.dto.certificate.CertificateSigningRequest;
 import com.app.pki_backend.entity.certificates.Certificate;
 import com.app.pki_backend.entity.certificates.CertificateStatus;
+import com.app.pki_backend.entity.certificates.CertificateTemplate;
 import com.app.pki_backend.entity.certificates.CertificateType;
+import com.app.pki_backend.entity.user.User;
 import com.app.pki_backend.repository.CertificateRepository;
 import com.app.pki_backend.service.interfaces.CertificateService;
 import com.app.pki_backend.service.interfaces.CryptographyService;
@@ -37,6 +39,8 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -56,6 +60,8 @@ public class CertificateServiceImpl implements CertificateService {
 
     @Autowired
     private MasterKeyService masterKeyService;
+    @Autowired
+    private CertificateTemplateServiceImpl certificateTemplateService;
 
     @Value("${pki.root-ca.subject}")
     private String rootCASubject;
@@ -420,5 +426,59 @@ public class CertificateServiceImpl implements CertificateService {
             }
         }
         return "Unknown Organization";
+    }
+    @Override
+    public List<Certificate> findAll() {
+        return certificateRepository.findAll();
+    }
+
+    @Override
+    public Optional<Certificate> findById(Long id) {
+        return certificateRepository.findById(id);
+    }
+
+    @Override
+    public void delete(Long id) {
+        certificateRepository.deleteById(id);
+    }
+    @Override
+    public Certificate issueRootWithTemplate(Long templateId) {
+        CertificateTemplate template = certificateTemplateService.findById(templateId);
+        return issueRootCertificate();
+    }
+
+    @Override
+    public Certificate issueIntermediateWithTemplate(Long templateId, CertificateSigningRequest csr) {
+        CertificateTemplate template = certificateTemplateService.findById(templateId);
+        Certificate issuer = template.getCaIssuer();
+
+        if (!certificateTemplateService.validateAgainstTemplate(csr, template)) {
+            throw new IllegalArgumentException("CSR does not match template policy");
+        }
+        csr = certificateTemplateService.applyTemplate(csr, template);
+
+        return issueIntermediateCertificate(csr, issuer);
+    }
+
+    @Override
+    public Certificate issueEndEntityWithTemplate(Long templateId, CertificateSigningRequest csr) {
+        CertificateTemplate template = certificateTemplateService.findById(templateId);
+        Certificate issuer = template.getCaIssuer();
+
+        if (!certificateTemplateService.validateAgainstTemplate(csr, template)) {
+            throw new IllegalArgumentException("CSR does not match template policy");
+        }
+        csr = certificateTemplateService.applyTemplate(csr, template);
+
+        return issueEndEntityCertificate(csr, issuer);
+    }
+    @Override
+    public List<Certificate> findAllByOrganization(String organizationName) {
+        return certificateRepository.findByOrganization(organizationName);
+    }
+
+    @Override
+    public List<Certificate> findAllByOwnerId(Integer ownerId) {
+        return certificateRepository.findByOwnerId(ownerId);
     }
 }

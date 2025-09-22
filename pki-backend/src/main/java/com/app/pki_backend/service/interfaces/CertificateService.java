@@ -48,5 +48,12 @@ public interface CertificateService {
      * @return
      */
     Certificate issueCertificateFromCSR(byte[] csrData, Certificate issuer);
-
+    List<Certificate> findAll();
+    Optional<Certificate> findById(Long id);
+    void delete(Long id);
+    Certificate issueRootWithTemplate(Long templateId);
+    Certificate issueIntermediateWithTemplate(Long templateId, CertificateSigningRequest csr);
+    Certificate issueEndEntityWithTemplate(Long templateId, CertificateSigningRequest csr);
+    List<Certificate> findAllByOrganization(String organizationName);
+    List<Certificate> findAllByOwnerId(Integer ownerId);
 }
