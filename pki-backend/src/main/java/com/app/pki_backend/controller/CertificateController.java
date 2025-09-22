@@ -1,7 +1,9 @@
 package com.app.pki_backend.controller;
 
+import com.app.pki_backend.dto.certificate.CertificateSigningRequest;
 import com.app.pki_backend.entity.certificates.Certificate;
 import com.app.pki_backend.entity.certificates.CertificateTemplate;
+import com.app.pki_backend.entity.user.User;
 import com.app.pki_backend.service.implementations.CertificateServiceImpl;
 import com.app.pki_backend.service.implementations.CertificateTemplateServiceImpl;
 import com.app.pki_backend.service.implementations.RevocationServiceImpl;
@@ -10,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,48 +34,96 @@ public class CertificateController {
         this.templateService = templateService;
     }
 
-    // === Выпуск сертификатов ===
-    @PostMapping("/issue/root")
-    public ResponseEntity<Certificate> issueRoot(@RequestBody CertificateTemplate template) {
-        Certificate cert = certificateService.issueRoot(template);
-        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
-    }
-
-    @PostMapping("/issue/intermediate")
-    public ResponseEntity<Certificate> issueIntermediate(@RequestBody CertificateTemplate template) {
-        Certificate cert = certificateService.issueIntermediate(template);
-        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
-    }
-
-    @PostMapping("/issue/ee")
-    public ResponseEntity<Certificate> issueEndEntity(@RequestBody CertificateTemplate template) {
-        Certificate cert = certificateService.issueEndEntity(template);
-        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
-    }
-
-    // === downloading certificates  ===
-    @GetMapping("/{id}/download")
-    public ResponseEntity<byte[]> downloadCertificate(@PathVariable Integer id) {
-        byte[] fileBytes = certificateService.exportAsPkcs12(id); // export PKCS12
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=certificate_" + id + ".p12");
-        return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
-    }
-
-    // === get all certificates ===
     @GetMapping
-    public ResponseEntity<List<Certificate>> listCertificates() {
-        List<Certificate> certs = certificateService.findAll();
-        return ResponseEntity.ok(certs);
+    public ResponseEntity<List<Certificate>> getAllCertificates(Authentication authentication) {
+        User currentUser = (User) authentication.getPrincipal();
+
+        List<Certificate> certificates;
+
+        switch (currentUser.getRole().toUpperCase()) {
+            case "ADMIN":
+                certificates = certificateService.findAll();
+                break;
+            case "CAUSER":
+                certificates = certificateService.findAllByOrganization(currentUser.getOrganizationName());
+                break;
+            case "USER":
+            default:
+                certificates = certificateService.findAllByOwnerId(currentUser.getId());
+                break;
+        }
+
+        return ResponseEntity.ok(certificates);
+    }
+    // === GET certificate by id ===
+    @GetMapping("/{id}")
+    public ResponseEntity<Certificate> getCertificateById(@PathVariable Long id) {
+        return certificateService.findById(id)
+                .map(cert -> ResponseEntity.ok(cert))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    // === certificate cancellation ===
-    @PostMapping("/{id}/revoke")
-    public ResponseEntity<String> revokeCertificate(@PathVariable Integer id,
-                                                    @RequestParam String reason) {
-        revocationService.revokeCertificate(id, reason);
-        return ResponseEntity.ok("Certificate " + id + " revoked for reason: " + reason);
+    // === DELETE certificate ===
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCertificate(@PathVariable Long id) {
+        if (certificateService.findById(id).isPresent()) {
+            certificateService.delete(id);
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+    @PostMapping("/issue/root")
+    public ResponseEntity<Certificate> issueRoot() {
+        Certificate cert = certificateService.issueRootCertificate();
+        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
+    }
+
+    @PostMapping("/issue/intermediate/{issuerId}")
+    public ResponseEntity<Certificate> issueIntermediate(
+            @PathVariable Long issuerId,
+            @RequestBody CertificateSigningRequest csr) {
+
+        Certificate issuer = certificateService.findById(issuerId)
+                .orElseThrow(() -> new IllegalArgumentException("Issuer not found"));
+
+        Certificate cert = certificateService.issueIntermediateCertificate(csr, issuer);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
+    }
+
+    @PostMapping("/issue/ee/{issuerId}")
+    public ResponseEntity<Certificate> issueEndEntity(
+            @PathVariable Long issuerId,
+            @RequestBody CertificateSigningRequest csr) {
+
+        Certificate issuer = certificateService.findById(issuerId)
+                .orElseThrow(() -> new IllegalArgumentException("Issuer not found"));
+
+        Certificate cert = certificateService.issueEndEntityCertificate(csr, issuer);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
+    }
+    @PostMapping("/issue/root/template/{templateId}")
+    public ResponseEntity<Certificate> issueRootWithTemplate(@PathVariable Long templateId) {
+        Certificate cert = certificateService.issueRootWithTemplate(templateId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
+    }
+
+    @PostMapping("/issue/intermediate/template/{templateId}")
+    public ResponseEntity<Certificate> issueIntermediateWithTemplate(
+            @PathVariable Long templateId,
+            @RequestBody CertificateSigningRequest csr) {
+
+        Certificate cert = certificateService.issueIntermediateWithTemplate(templateId, csr);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
+    }
+
+    @PostMapping("/issue/ee/template/{templateId}")
+    public ResponseEntity<Certificate> issueEndEntityWithTemplate(
+            @PathVariable Long templateId,
+            @RequestBody CertificateSigningRequest csr) {
+
+        Certificate cert = certificateService.issueEndEntityWithTemplate(templateId, csr);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
     }
 
     // === work with templates ===
