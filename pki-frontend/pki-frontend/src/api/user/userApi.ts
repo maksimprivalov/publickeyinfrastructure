@@ -16,4 +16,6 @@ class UserApi implements IApi {
     }
 }
 
-export default UserApi;
+const userApi = new UserApi();
+
+export default userApi;
