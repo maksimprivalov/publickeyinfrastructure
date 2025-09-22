@@ -2,12 +2,17 @@ package com.app.pki_backend.entity.certificates;
 
 import com.app.pki_backend.entity.user.User;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "certificates")
+@Builder
+@AllArgsConstructor
 public class Certificate {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
