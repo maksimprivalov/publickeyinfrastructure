@@ -11,6 +11,7 @@ import com.app.pki_backend.service.interfaces.CertificateService;
 import com.app.pki_backend.service.interfaces.CryptographyService;
 import com.app.pki_backend.service.interfaces.PrivateKeyService;
 import com.app.pki_backend.service.interfaces.MasterKeyService;
+import com.app.pki_backend.specification.CertificateSpecification;
 import com.app.pki_backend.util.CertificateBuilder;
 import com.app.pki_backend.util.PEMConverter;
 
@@ -29,10 +30,13 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
+import org.springframework.data.domain.Pageable;
 import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.security.KeyPair;
@@ -509,7 +513,7 @@ public class CertificateServiceImpl implements CertificateService {
             throw new RuntimeException("Failed to export PKCS12", e);
         }
     }
-
+    public Page<Certificate> search(CertificateStatus status, CertificateType type, String organization, Pageable pageable) { return certificateRepository.findAll( Specification.where(CertificateSpecification.hasStatus(status)) .and(CertificateSpecification.hasType(type)) .and(CertificateSpecification.hasOrganization(organization)), pageable ); }
 //    @Override
 //    public User findUserByEmail(String email) {
 //        return user;

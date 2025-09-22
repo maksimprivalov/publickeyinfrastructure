@@ -2,12 +2,11 @@ package com.app.pki_backend.service.interfaces;
 
 import com.app.pki_backend.dto.certificate.CertificateSigningRequest;
 import com.app.pki_backend.entity.certificates.Certificate;
-import com.app.pki_backend.entity.user.User;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
+import com.app.pki_backend.entity.certificates.CertificateStatus;
+import com.app.pki_backend.entity.certificates.CertificateType;
+import org.springframework.data.domain.Page;
 
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.cert.X509Certificate;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,6 +56,10 @@ public interface CertificateService {
     List<Certificate> findAllByOrganization(String organizationName);
     List<Certificate> findAllByOwnerId(Integer ownerId);
     byte[] exportAsPkcs12(Long certId, String password);
+
+    Page<Certificate> search(CertificateStatus status, CertificateType type, String organization, Pageable pageable);
+
+//    Optional<User> findById(Integer userId);
 
 //    User findUserByEmail(String email);
 }
