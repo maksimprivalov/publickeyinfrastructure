@@ -28,11 +28,17 @@ public interface CryptographyService {
     BigInteger generateSerialNumber();
 
     /**
-     * Creation Subject Key Identifier for sertificate.
+     * Creation Subject Key Identifier for certificate.
      * @param publicKeyInfo Public key info.
      * @return Subject Key Identifier.
      */
     SubjectKeyIdentifier createSubjectKeyIdentifier(SubjectPublicKeyInfo publicKeyInfo);
+
+    /**
+     * Generate AES encryption key for private key encryption.
+     * @return AES secret key
+     */
+    SecretKey generateAESKey();
 
     /**
      * Encrypt private key with AES encryption.
@@ -49,11 +55,4 @@ public interface CryptographyService {
      * @return decrypted private key
      */
     PrivateKey decryptPrivateKey(String encryptedData, SecretKey encryptionKey);
-
-    /**
-     * Generate AES key.
-     * @return AES key
-     */
-    SecretKey generateAESKey();
-
 }
