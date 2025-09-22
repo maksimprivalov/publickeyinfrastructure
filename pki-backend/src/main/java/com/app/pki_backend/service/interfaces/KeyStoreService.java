@@ -84,11 +84,12 @@ public interface KeyStoreService {
 
     /**
      * Validate keystore integrity and password.
-     * @param keyStore KeyStore to validate
+     * @param keyStoreData KeyStore to validate
      * @param password Password to test
+     * @param keystoreType Type of keystore (PKCS12, JKS)
      * @return true if keystore is valid and password is correct
      */
-    boolean validateKeyStore(KeyStore keyStore, String password);
+    boolean validateKeyStore(InputStream keyStoreData, String password, String keystoreType);
 
     /**
      * Get certificate alias for keystore entry.
