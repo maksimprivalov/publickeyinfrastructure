@@ -7,6 +7,9 @@ import com.app.pki_backend.entity.user.User;
 import com.app.pki_backend.service.implementations.CertificateServiceImpl;
 import com.app.pki_backend.service.implementations.CertificateTemplateServiceImpl;
 import com.app.pki_backend.service.implementations.RevocationServiceImpl;
+import com.app.pki_backend.service.interfaces.UserService;
+import com.app.pki_backend.util.TokenUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -24,6 +28,10 @@ public class CertificateController {
     private final CertificateServiceImpl certificateService;
     private final RevocationServiceImpl revocationService;
     private final CertificateTemplateServiceImpl templateService;
+    @Autowired
+    private TokenUtils tokenUtils;
+    @Autowired
+    private UserService userService;
 
     @Autowired
     public CertificateController(CertificateServiceImpl certificateService,
@@ -144,4 +152,56 @@ public class CertificateController {
         templateService.deleteTemplate(id);
         return ResponseEntity.ok("Template " + id + " deleted.");
     }
+
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> downloadCertificate(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "changeit") String password) {
+
+        byte[] fileBytes = certificateService.exportAsPkcs12(id, password);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=certificate_" + id + ".p12");
+
+        return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
+    }
+
+    @PostMapping("/csr/upload/{issuerId}")
+    public ResponseEntity<Certificate> uploadCsr(
+            @PathVariable Long issuerId,
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+
+        try {
+            String jwtToken = tokenUtils.getToken(request);
+            if (jwtToken == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            String email = tokenUtils.getUsernameFromToken(jwtToken);
+            User user = userService.findByEmail(email);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            Certificate issuer = certificateService.findById(issuerId)
+                    .orElseThrow(() -> new IllegalArgumentException("Issuer not found"));
+
+            String csrContent = new String(file.getBytes());
+
+            CertificateSigningRequest csr = new CertificateSigningRequest();
+            csr.setCsrContent(csrContent);
+            csr.setRequestedBy(user);
+            csr.setSelectedCA(issuer);
+
+            Certificate issuedCert = certificateService.issueCertificateFromCSR(file.getBytes(), issuer);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(issuedCert);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
 }

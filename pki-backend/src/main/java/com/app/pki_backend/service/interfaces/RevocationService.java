@@ -1,7 +1,12 @@
 package com.app.pki_backend.service.interfaces;
 
 import com.app.pki_backend.entity.certificates.Certificate;
+import com.app.pki_backend.entity.certificates.RevokedCertificate;
+import com.app.pki_backend.entity.user.User;
 import org.bouncycastle.asn1.ocsp.OCSPResponse;
+import org.bouncycastle.cert.ocsp.OCSPResp;
+
+import java.util.List;
 
 /**
  * Service interface for certificate revocation management.
@@ -9,25 +14,11 @@ import org.bouncycastle.asn1.ocsp.OCSPResponse;
  */
 
 public interface RevocationService {
+    void revokeCertificate(Certificate certificate, String reason, User revokedBy);
 
-    /**
-     * Revoke certificate.
-     * @param certificate
-     * @param reason
-     */
-    void revokeCertificate(Certificate certificate, String reason);
-
-    /**
-     * Generate CRL for issuer certificate.
-     * @param issuer
-     * @return
-     */
     byte[] generateCRL(Certificate issuer);
 
-    /**
-     * Check revocation status of certificate.
-     * @param serialNumber
-     * @return
-     */
-    OCSPResponse checkRevocationStatus(String serialNumber);
+    OCSPResp checkRevocationStatus(String serialNumber);
+
+    List<RevokedCertificate> listRevoked();
 }
