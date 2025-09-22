@@ -56,4 +56,7 @@ public interface CertificateService {
     Certificate issueEndEntityWithTemplate(Long templateId, CertificateSigningRequest csr);
     List<Certificate> findAllByOrganization(String organizationName);
     List<Certificate> findAllByOwnerId(Integer ownerId);
+    byte[] exportAsPkcs12(Long certId, String password);
+
+//    User findUserByEmail(String email);
 }

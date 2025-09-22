@@ -33,8 +33,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
+import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.security.KeyPair;
+import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
@@ -481,4 +483,35 @@ public class CertificateServiceImpl implements CertificateService {
     public List<Certificate> findAllByOwnerId(Integer ownerId) {
         return certificateRepository.findByOwnerId(ownerId);
     }
+
+    @Override
+    public byte[] exportAsPkcs12(Long certId, String password) {
+        try {
+            Certificate cert = certificateRepository.findById(certId)
+                    .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+
+            SecretKey masterKey = masterKeyService.getCurrentMasterKey();
+            PrivateKey privateKey = privateKeyService.retrievePrivateKey(cert, masterKey);
+
+            X509Certificate x509Cert = pemConverter.parseCertificate(cert.getCertificateData());
+
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(null, null);
+
+            keyStore.setKeyEntry("key", privateKey, password.toCharArray(), new java.security.cert.Certificate[]{x509Cert});
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            keyStore.store(baos, password.toCharArray());
+
+            return baos.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to export PKCS12", e);
+        }
+    }
+
+//    @Override
+//    public User findUserByEmail(String email) {
+//        return user;
+//    }
 }
