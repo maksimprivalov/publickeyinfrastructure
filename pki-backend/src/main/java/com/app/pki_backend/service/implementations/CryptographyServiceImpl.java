@@ -1,5 +1,6 @@
 package com.app.pki_backend.service.implementations;
 
+import com.app.pki_backend.dto.certificate.CertificateSigningRequest;
 import com.app.pki_backend.service.interfaces.CryptographyService;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -12,6 +13,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import java.math.BigInteger;
 import java.security.*;
+import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.util.Base64;
@@ -96,10 +98,10 @@ public class CryptographyServiceImpl implements CryptographyService {
         try {
             byte[] data = Base64.getDecoder().decode(encryptedData);
 
-            // Извлекаем IV (первые 12 байт для GCM)
             byte[] iv = new byte[12];
-            byte[] encrypted = new byte[data.length - 12];
             System.arraycopy(data, 0, iv, 0, 12);
+
+            byte[] encrypted = new byte[data.length - 12];
             System.arraycopy(data, 12, encrypted, 0, encrypted.length);
 
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
@@ -115,5 +117,4 @@ public class CryptographyServiceImpl implements CryptographyService {
             throw new RuntimeException("Failed to decrypt private key", e);
         }
     }
-
 }
