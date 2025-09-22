@@ -49,11 +49,19 @@ public class CertificateController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Certificate>> getAllCertificates(Authentication authentication) {
-        User currentUser = (User) authentication.getPrincipal();
+    public ResponseEntity<List<Certificate>> getAllCertificates(HttpServletRequest request) {
+        String token = tokenUtils.getToken(request);
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String email = tokenUtils.getUsernameFromToken(token);
+        User currentUser = userService.findByEmail(email);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
 
         List<Certificate> certificates;
-
         switch (currentUser.getRole().toUpperCase()) {
             case "ADMIN":
                 certificates = certificateService.findAll();
@@ -87,11 +95,13 @@ public class CertificateController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
-    @PostMapping("/issue/root")
-    public ResponseEntity<Certificate> issueRoot() {
-        Certificate cert = certificateService.issueRootCertificate();
-        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
-    }
+
+//    Do not issue ROOT certificate with API
+//    @PostMapping("/issue/root")
+//    public ResponseEntity<Certificate> issueRoot() {
+//        Certificate cert = certificateService.issueRootCertificate();
+//        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
+//    }
 
     @PostMapping("/issue/intermediate/{issuerId}")
     public ResponseEntity<Certificate> issueIntermediate(

@@ -82,7 +82,7 @@ public class User implements UserDetails {
     }
 
     public void setRole(String role) {
-        this.role = role;
+        this.role = (role == null ? null : role.toUpperCase());
     }
 
     public LocalDateTime getSuspendedSince() {
@@ -135,4 +135,7 @@ public class User implements UserDetails {
         return suspendedSince == null;
     }
 
+    public void setId(Integer id) {
+        this.id = id;
+    }
 }

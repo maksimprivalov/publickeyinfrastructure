@@ -106,13 +106,6 @@ public class UserController {
                 })
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token"));
     }
-
-//    @PostMapping("/logout")
-//    public ResponseEntity<?> logout(@RequestParam("userId") Integer userId) {
-//        User user = userService.findById(userId);
-//        refreshTokenService.deleteByUser(user);
-//        return ResponseEntity.ok("Logged out successfully, refresh token revoked");
-//    }
 @PostMapping("/logout")
 public ResponseEntity<String> logout(HttpServletRequest request) {
     String token = tokenUtils.getToken(request);
