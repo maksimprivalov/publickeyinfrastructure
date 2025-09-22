@@ -177,6 +177,9 @@ public class TokenUtils {
     public int getExpiredIn() {
         return ACCESS_EXPIRES_IN;
     }
+    public int getRefreshExpiresIn() {
+        return REFRESH_EXPIRES_IN;
+    }
 
     public String getAuthHeaderFromHeader(HttpServletRequest request) {
         return request.getHeader(AUTH_HEADER);

@@ -10,4 +10,6 @@ public interface UserService {
     void sendActivationEmail(String email, String token);
     User save(User user);
     User findByEmail(String username);
+
+    User findById(Integer userId);
 }
