@@ -198,10 +198,10 @@ public class KeyStoreServiceImpl implements KeyStoreService {
     }
 
     @Override
-    public boolean validateKeyStore(KeyStore keyStore, String password) {
+    public boolean validateKeyStore(InputStream keystoreData, String password, String keystoreType) {
         try {
-            // Try to load the keystore with the given password
-            keyStore.load(null, password.toCharArray());
+            KeyStore keyStore = KeyStore.getInstance(keystoreType);
+            keyStore.load(keystoreData, password.toCharArray());
 
             // Check if keystore has at least one entry
             return keyStore.size() > 0;
