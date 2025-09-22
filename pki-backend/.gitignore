@@ -14,7 +14,8 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+../.idea
+../database.db
 *.iws
 *.iml
 *.ipr
@@ -31,3 +32,4 @@ build/
 
 ### VS Code ###
 .vscode/
+
