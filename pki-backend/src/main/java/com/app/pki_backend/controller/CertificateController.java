@@ -49,11 +49,19 @@ public class CertificateController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Certificate>> getAllCertificates(Authentication authentication) {
-        User currentUser = (User) authentication.getPrincipal();
+    public ResponseEntity<List<Certificate>> getAllCertificates(HttpServletRequest request) {
+        String token = tokenUtils.getToken(request);
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String email = tokenUtils.getUsernameFromToken(token);
+        User currentUser = userService.findByEmail(email);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
 
         List<Certificate> certificates;
-
         switch (currentUser.getRole().toUpperCase()) {
             case "ADMIN":
                 certificates = certificateService.findAll();
