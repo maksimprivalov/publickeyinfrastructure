@@ -95,11 +95,13 @@ public class CertificateController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
-    @PostMapping("/issue/root")
-    public ResponseEntity<Certificate> issueRoot() {
-        Certificate cert = certificateService.issueRootCertificate();
-        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
-    }
+
+//    Do not issue ROOT certificate with API
+//    @PostMapping("/issue/root")
+//    public ResponseEntity<Certificate> issueRoot() {
+//        Certificate cert = certificateService.issueRootCertificate();
+//        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
+//    }
 
     @PostMapping("/issue/intermediate/{issuerId}")
     public ResponseEntity<Certificate> issueIntermediate(
