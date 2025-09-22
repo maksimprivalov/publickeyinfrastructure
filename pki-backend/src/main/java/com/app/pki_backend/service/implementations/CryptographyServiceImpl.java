@@ -82,7 +82,7 @@ public class CryptographyServiceImpl implements CryptographyService {
             byte[] encryptedData = cipher.doFinal(privateKeyBytes);
             byte[] iv = cipher.getIV();
 
-            // Объединяем IV + зашифрованные данные
+            // Combine IV + encrypted data
             byte[] result = new byte[iv.length + encryptedData.length];
             System.arraycopy(iv, 0, result, 0, iv.length);
             System.arraycopy(encryptedData, 0, result, iv.length, encryptedData.length);
