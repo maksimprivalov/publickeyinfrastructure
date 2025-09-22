@@ -185,7 +185,7 @@ public class KeyStoreServiceImpl implements KeyStoreService {
                 currentCert = currentCert.getIssuerCertificate();
 
                 // Break if this is a self-signed root certificate
-                if (currentCert != null && currentCert.getId().equals(certificate.getId())) {
+                if (currentCert != null && currentCert.getId().equals(currentCert.getIssuerCertificate().getId())) {
                     break;
                 }
             }
