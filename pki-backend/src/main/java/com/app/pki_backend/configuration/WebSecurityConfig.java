@@ -65,11 +65,48 @@ public class WebSecurityConfig{
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.exceptionHandling(exceptionHandling -> exceptionHandling.authenticationEntryPoint(restAuthenticationEntryPoint));
         http.authorizeHttpRequests(request -> {
-            request.requestMatchers(new AntPathRequestMatcher("/api/users/login")).permitAll()
+            request.requestMatchers("/api/users/login").permitAll()
+                    .requestMatchers("/api/users/register").permitAll()
+                    .requestMatchers("/api/users/activate").permitAll()
+                    .requestMatchers("/api/users/logout").authenticated()
 
-                    .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
+                    // Certificates
+                    .requestMatchers(HttpMethod.GET, "/api/certificates").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/certificates/*").authenticated()
+                    .requestMatchers(HttpMethod.DELETE, "/api/certificates/*").hasRole("ADMIN")
+
+                    .requestMatchers("/api/certificates/issue/root").hasRole("ADMIN")
+                    .requestMatchers("/api/certificates/issue/intermediate/**").hasAnyRole("ADMIN","CAUSER")
+                    .requestMatchers("/api/certificates/issue/ee/**").hasAnyRole("ADMIN","CAUSER")
+
+                    .requestMatchers("/api/certificates/issue/root/template/**").hasRole("ADMIN")
+                    .requestMatchers("/api/certificates/issue/intermediate/template/**").hasAnyRole("ADMIN","CAUSER")
+                    .requestMatchers("/api/certificates/issue/ee/template/**").hasAnyRole("ADMIN","CAUSER")
+
+                    // Templates
+                    .requestMatchers(HttpMethod.POST, "/api/certificates/templates").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/certificates/templates").hasAnyRole("ADMIN","CAUSER")
+                    .requestMatchers(HttpMethod.DELETE, "/api/certificates/templates/*").hasRole("ADMIN")
+
+                    // Download + CSR
+                    .requestMatchers(HttpMethod.GET, "/api/certificates/*/download").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/certificates/csr/upload/**").hasRole("USER")
+
+                    // Search
+                    .requestMatchers(HttpMethod.GET, "/api/certificates/search").hasAnyRole("ADMIN","CAUSER")
+
+                    // Revocations
+                    .requestMatchers(HttpMethod.POST, "/api/revocations/*/revoke").hasAnyRole("ADMIN","CAUSER")
+                    .requestMatchers(HttpMethod.GET, "/api/revocations").hasAnyRole("ADMIN","CAUSER")
+                    .requestMatchers(HttpMethod.GET, "/api/revocations/crl").hasAnyRole("ADMIN","CAUSER")
+
+                    // Error
+                    .requestMatchers("/error").permitAll()
+
+
                     .anyRequest().authenticated();
         });
+        http.logout(logout -> logout.disable());
         http.addFilterBefore(new TokenAuthenticationFilter(tokenUtils, userDetailsService()), UsernamePasswordAuthenticationFilter.class);
         http.authenticationProvider(authenticationProvider());
         return http.build();
@@ -84,13 +121,19 @@ public class WebSecurityConfig{
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200" , "http://192.168.1.3:8000"));
-        configuration.setAllowedMethods(Arrays.asList("POST", "PUT", "GET", "OPTIONS", "DELETE", "PATCH")); // или просто "*"
+        configuration.setAllowedOrigins(Arrays.asList(
+                "https://localhost:5173",
+                "https://192.168.1.3:8000",
+                "http://localhost:5173",
+                "http://192.168.1.3:8000"
+        ));
+        configuration.setAllowedMethods(Arrays.asList("POST", "PUT", "GET", "OPTIONS", "DELETE", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
 
 }

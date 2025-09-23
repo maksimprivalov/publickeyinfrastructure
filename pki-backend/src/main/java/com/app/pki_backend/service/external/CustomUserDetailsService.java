@@ -1,6 +1,6 @@
 package com.app.pki_backend.service.external;
 
-import com.app.pki_backend.entity.User;
+import com.app.pki_backend.entity.user.User;
 import com.app.pki_backend.service.interfaces.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;

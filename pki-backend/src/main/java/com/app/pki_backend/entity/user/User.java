@@ -1,8 +1,7 @@
-package com.app.pki_backend.entity;
+package com.app.pki_backend.entity.user;
 
 
 import jakarta.persistence.*;
-import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,9 +29,21 @@ public class User implements UserDetails {
     private String name;
     @Column(nullable = false)
     private String surname;
+    @Column(nullable = false)
+    private String organizationName;
+    @Column(nullable = false)
+    private Boolean isActive = false;;
     @Column(name = "role", insertable = false, updatable = false)
     private String role; // read only
     private LocalDateTime suspendedSince;
+
+    public Boolean getActive() {
+        return isActive;
+    }
+
+    public void setActive(Boolean active) {
+        isActive = active;
+    }
 
     public Integer getId() {
         return id;
@@ -71,7 +82,7 @@ public class User implements UserDetails {
     }
 
     public void setRole(String role) {
-        this.role = role;
+        this.role = (role == null ? null : role.toUpperCase());
     }
 
     public LocalDateTime getSuspendedSince() {
@@ -85,6 +96,14 @@ public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+    }
+
+    public String getOrganizationName() {
+        return organizationName;
+    }
+
+    public void setOrganizationName(String organizationName) {
+        this.organizationName = organizationName;
     }
 
     @Override
@@ -116,4 +135,7 @@ public class User implements UserDetails {
         return suspendedSince == null;
     }
 
+    public void setId(Integer id) {
+        this.id = id;
+    }
 }
