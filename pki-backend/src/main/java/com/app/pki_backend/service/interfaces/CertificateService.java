@@ -47,6 +47,9 @@ public interface CertificateService {
      * @return
      */
     Certificate issueCertificateFromCSR(byte[] csrData, Certificate issuer);
+
+    Certificate issueServerCertificate(String serverName, Certificate issuer);
+
     List<Certificate> findAll();
     Optional<Certificate> findById(Long id);
     void delete(Long id);
