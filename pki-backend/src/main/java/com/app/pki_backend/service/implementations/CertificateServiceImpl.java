@@ -433,6 +433,45 @@ public class CertificateServiceImpl implements CertificateService {
         }
         return "Unknown Organization";
     }
+
+    @Override
+    public Certificate issueServerCertificate(String serverName, Certificate issuer) {
+        try {
+            // Generate key pair for server
+            KeyPair keyPair = cryptographyService.generateKeyPair(keySize);
+
+            // Create server certificate
+            X509Certificate serverCert = buildServerCertificate(
+                    "CN=" + serverName + ", O=PKI Server, C=RS",
+                    keyPair.getPublic(),
+                    getIssuerPrivateKey(issuer),
+                    issuer,
+                    endEntityValidityYears
+            );
+
+            // Save certificate
+            Certificate certificate = CertificateBuilder.create()
+                    .fromX509Certificate(serverCert, pemConverter, keyPair.getPublic())
+                    .validityPeriod(endEntityValidityYears)
+                    .type(CertificateType.END_ENTITY)
+                    .status(CertificateStatus.ACTIVE)
+                    .organization("PKI Server")
+                    .issuerCertificate(issuer)
+                    .build();
+
+            Certificate savedCertificate = certificateRepository.save(certificate);
+
+            // Store private key
+            SecretKey masterKey = masterKeyService.getCurrentMasterKey();
+            privateKeyService.storePrivateKey(savedCertificate, keyPair.getPrivate(), masterKey);
+
+            return savedCertificate;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create server certificate", e);
+        }
+    }
+
     @Override
     public List<Certificate> findAll() {
         return certificateRepository.findAll();
@@ -518,4 +557,61 @@ public class CertificateServiceImpl implements CertificateService {
 //    public User findUserByEmail(String email) {
 //        return user;
 //    }
+
+    private X509Certificate buildServerCertificate(
+            String subjectDN,
+            PublicKey publicKey,
+            PrivateKey issuerPrivateKey,
+            Certificate issuerCert,
+            int validityYears) throws Exception {
+
+        X500Name subject = new X500Name(subjectDN);
+        X500Name issuer = new X500Name(issuerCert.getSubject());
+
+        BigInteger serialNumber = cryptographyService.generateSerialNumber();
+        Date notBefore = new Date();
+        Date notAfter = new Date(System.currentTimeMillis() +
+                (long) validityYears * 365 * 24 * 60 * 60 * 1000L);
+
+        X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
+                issuer,
+                serialNumber,
+                notBefore,
+                notAfter,
+                subject,
+                publicKey
+        );
+
+        addServerExtensions(certBuilder);
+
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256WithRSA")
+                .build(issuerPrivateKey);
+
+        return new JcaX509CertificateConverter()
+                .getCertificate(certBuilder.build(signer));
+    }
+
+    private void addServerExtensions(X509v3CertificateBuilder certBuilder) throws Exception {
+        // Basic Constraints - not a CA
+        certBuilder.addExtension(
+                Extension.basicConstraints,
+                true,
+                new BasicConstraints(false)
+        );
+
+        // Key Usage for server authentication
+        certBuilder.addExtension(
+                Extension.keyUsage,
+                true,
+                new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment)
+        );
+
+        // Extended Key Usage for server authentication
+        certBuilder.addExtension(
+                Extension.extendedKeyUsage,
+                false,
+                new ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth)
+        );
+
+    }
 }
