@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import userApi from '../api/user/userApi';
 import * as Toast from '@radix-ui/react-toast';
-import { history } from '../services/history';
 
 const loginSchema = z.object({
   email: z.email(),
@@ -11,6 +11,7 @@ const loginSchema = z.object({
 });
 
 export const LoginForm = () => {
+  const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [open, setOpen] = useState(false);
@@ -26,18 +27,29 @@ export const LoginForm = () => {
     onSuccess: (response: any) => {
       const { accessToken, refreshToken } = response.data;
       if (accessToken && refreshToken) {
-        console.log(accessToken)
         localStorage.setItem('access_token', accessToken);
         localStorage.setItem('refresh_token', refreshToken);
-        history.navigate("/"); // Redirect to home
+        
+        // Dispatch custom event to notify hooks about token change
+        window.dispatchEvent(new CustomEvent('tokenChanged'));
+        
+        // Small delay to ensure hooks have time to update
+        setTimeout(() => {
+          navigate("/", { replace: true }); // Redirect to home
+        }, 100);
       } else {
         setToastMsg("Invalid server response: tokens missing.");
         setOpen(true);
       }
     },
     onError: (error: any) => {
-      console.log(error)
-      setToastMsg(error.response.data);
+      let errorMsg = 'Login failed';
+      if (error.response?.data) {
+        errorMsg = typeof error.response.data === 'string' 
+          ? error.response.data 
+          : error.response.data.message || 'Login failed';
+      }
+      setToastMsg(errorMsg);
       setOpen(true);
     },
   });
@@ -48,6 +60,7 @@ export const LoginForm = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
     const result = loginSchema.safeParse(form);
     if (!result.success) {
       const fieldErrors: { email?: string; password?: string } = {};
@@ -57,6 +70,7 @@ export const LoginForm = () => {
       setErrors(fieldErrors);
       return;
     }
+    
     setErrors({});
     mutation.mutate(form);
   };
@@ -76,11 +90,7 @@ export const LoginForm = () => {
           background: '#fff', 
           borderRadius: 16, 
           boxShadow: '0 4px 24px rgba(0,0,0,0.08)', 
-          border: '1px solid #e5e7eb',
-          '@media (max-width: 480px)': {
-            padding: '24px 16px',
-            gap: 16
-          }
+          border: '1px solid #e5e7eb'
         }}
       >
         <h2 style={{ 
@@ -113,6 +123,7 @@ export const LoginForm = () => {
             placeholder="Enter your email"
             value={form.email}
             onChange={handleChange}
+            autoComplete="username"
             style={{ 
               padding: '12px 16px', 
               borderRadius: 8, 
@@ -120,11 +131,7 @@ export const LoginForm = () => {
               fontSize: 15, 
               color: '#1f2937',
               transition: 'border-color 0.2s, box-shadow 0.2s',
-              outline: 'none',
-              '&:focus': {
-                borderColor: '#2563eb',
-                boxShadow: '0 0 0 3px rgba(37, 99, 235, 0.1)'
-              }
+              outline: 'none'
             }}
           />
           {errors.email && (
@@ -158,6 +165,7 @@ export const LoginForm = () => {
             placeholder="Enter your password"
             value={form.password}
             onChange={handleChange}
+            autoComplete="current-password"
             style={{ 
               padding: '12px 16px', 
               borderRadius: 8, 

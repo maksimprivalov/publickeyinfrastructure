@@ -34,7 +34,7 @@ function parseJwt(token: string): DecodedToken | null {
 export function useUserRole(): UserRole | null {
   const [role, setRole] = useState<UserRole | null>(null);
 
-  useEffect(() => {
+  const updateRole = () => {
     const token = localStorage.getItem('access_token');
     if (token) {
       const decoded = parseJwt(token);
@@ -42,6 +42,30 @@ export function useUserRole(): UserRole | null {
     } else {
       setRole(null);
     }
+  };
+
+  useEffect(() => {
+    updateRole();
+
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'access_token') {
+        updateRole();
+      }
+    };
+
+    // Listen for custom storage events (for same-tab changes)
+    const handleCustomStorageChange = () => {
+      updateRole();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('tokenChanged', handleCustomStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('tokenChanged', handleCustomStorageChange);
+    };
   }, []);
 
   return role;
@@ -50,7 +74,7 @@ export function useUserRole(): UserRole | null {
 export function useUserId(): number | null {
   const [userId, setUserId] = useState<number | null>(null);
 
-  useEffect(() => {
+  const updateUserId = () => {
     const token = localStorage.getItem('access_token');
     if (token) {
       const decoded = parseJwt(token);
@@ -58,6 +82,30 @@ export function useUserId(): number | null {
     } else {
       setUserId(null);
     }
+  };
+
+  useEffect(() => {
+    updateUserId();
+
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'access_token') {
+        updateUserId();
+      }
+    };
+
+    // Listen for custom storage events (for same-tab changes)
+    const handleCustomStorageChange = () => {
+      updateUserId();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('tokenChanged', handleCustomStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('tokenChanged', handleCustomStorageChange);
+    };
   }, []);
 
   return userId;
