@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useRole } from '../hooks/useRole';
+import userApi from '../api/user/userApi';
 
 const Navigation: React.FC = () => {
   const role = useRole();
@@ -51,10 +52,26 @@ const Navigation: React.FC = () => {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    window.location.href = '/auth';
+  const handleLogout = async () => {
+    try {
+      // Call logout API to invalidate refresh token on server
+      await userApi.post({
+        url: '/api/users/logout',
+        authenticated: true
+      });
+    } catch (error) {
+      // Log error but still proceed with logout
+      console.warn('Logout API call failed:', error);
+    } finally {
+      // Always clear tokens and redirect, even if API call fails
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      
+      // Dispatch custom event to notify hooks about token removal
+      window.dispatchEvent(new CustomEvent('tokenChanged'));
+      
+      window.location.href = '/auth';
+    }
   };
 
   const NavLink = ({ to, children }: { to: string; children: React.ReactNode }) => (
@@ -120,14 +137,11 @@ const Navigation: React.FC = () => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          '@media (max-width: 768px)': {
-            display: 'none'
-          }
+          gap: 8
         }}>
           {isAuthenticated ? (
             <>
-              {role === 'admin' && (
+              {role === 'Admin' && (
                 <>
                   <NavLink to="/admin">Admin Panel</NavLink>
                   <NavLink to="/users">Users</NavLink>
@@ -135,14 +149,14 @@ const Navigation: React.FC = () => {
                   <NavLink to="/templates">Templates</NavLink>
                 </>
               )}
-              {role === 'ca_operator' && (
+              {role === 'CAUser' && (
                 <>
                   <NavLink to="/ca-panel">CA Panel</NavLink>
                   <NavLink to="/certificates">Certificates</NavLink>
                   <NavLink to="/revocation">Revocation</NavLink>
                 </>
               )}
-              {role === 'user' && (
+              {role === 'User' && (
                 <>
                   <NavLink to="/user">My Certificates</NavLink>
                   <NavLink to="/upload">Upload CSR</NavLink>
@@ -190,9 +204,6 @@ const Navigation: React.FC = () => {
           onClick={toggleMenu}
           style={{
             display: 'none',
-            '@media (max-width: 768px)': {
-              display: 'block'
-            },
             background: 'rgba(255,255,255,0.1)',
             border: 'none',
             borderRadius: 6,
@@ -225,14 +236,11 @@ const Navigation: React.FC = () => {
           padding: '16px 24px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 8,
-          '@media (min-width: 769px)': {
-            display: 'none'
-          }
+          gap: 8
         }}>
           {isAuthenticated ? (
             <>
-              {role === 'admin' && (
+              {role === 'Admin' && (
                 <>
                   <NavLink to="/admin">Admin Panel</NavLink>
                   <NavLink to="/users">Users</NavLink>
@@ -240,14 +248,14 @@ const Navigation: React.FC = () => {
                   <NavLink to="/templates">Templates</NavLink>
                 </>
               )}
-              {role === 'ca_operator' && (
+              {role === 'CAUser' && (
                 <>
                   <NavLink to="/ca-panel">CA Panel</NavLink>
                   <NavLink to="/certificates">Certificates</NavLink>
                   <NavLink to="/revocation">Revocation</NavLink>
                 </>
               )}
-              {role === 'user' && (
+              {role === 'User' && (
                 <>
                   <NavLink to="/user">My Certificates</NavLink>
                   <NavLink to="/upload">Upload CSR</NavLink>

@@ -1,6 +1,6 @@
 import type { RouteObject } from "react-router-dom";
-import { Test } from "./components/Test";
 import AuthPage from './pages/AuthPage';
+import HomePage from './pages/HomePage';
 import AdminPanel from './pages/AdminPanel';
 import UserPanel from './pages/UserPanel';
 import CAPanel from './pages/CAPanel';
@@ -33,7 +33,15 @@ const AuthRedirect: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 const paths: RouteObject[] = [
   {
     path: '/',
-    element: <MainLayout><UserPanel /></MainLayout>,
+    element: <MainLayout><HomePage /></MainLayout>,
+  },
+  {
+    path: '/user',
+    element: (
+      <ProtectedRoute allowedRoles={['User', 'Admin', 'CAUser']}>
+        <MainLayout><UserPanel /></MainLayout>
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/admin',
@@ -47,7 +55,7 @@ const paths: RouteObject[] = [
     path: '/users',
     element: (
       <ProtectedRoute allowedRoles={['Admin']}>
-        <MainLayout><UserManagement users={[]} /></MainLayout>
+        <MainLayout><UserManagement /></MainLayout>
       </ProtectedRoute>
     ),
   },
