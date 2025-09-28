@@ -7,19 +7,23 @@ class RevocationApi implements IApi {
   private baseUrl = "/api/revocations";
 
   get(requestConfig?: AuthAxiosRequestConfig) {
-    return apiClient.get(requestConfig?.url || '', requestConfig);
+    const { url, ...config } = requestConfig || {};
+    return apiClient.get(url || '', config);
   }
   
   post(requestConfig?: AuthAxiosRequestConfig) {
-    return apiClient.post(requestConfig?.url || '', requestConfig?.data, requestConfig);
+    const { url, data, ...config } = requestConfig || {};
+    return apiClient.post(url || '', data, config);
   }
   
   put(requestConfig?: AuthAxiosRequestConfig) {
-    return apiClient.put(requestConfig?.url || '', requestConfig?.data, requestConfig);
+    const { url, data, ...config } = requestConfig || {};
+    return apiClient.put(url || '', data, config);
   }
   
   delete(requestConfig?: AuthAxiosRequestConfig) {
-    return apiClient.delete(requestConfig?.url || '', requestConfig);
+    const { url, ...config } = requestConfig || {};
+    return apiClient.delete(url || '', config);
   }
 
   // Отозвать сертификат

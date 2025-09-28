@@ -46,26 +46,6 @@ export function useUserRole(): UserRole | null {
 
   useEffect(() => {
     updateRole();
-
-    // Listen for storage changes
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'access_token') {
-        updateRole();
-      }
-    };
-
-    // Listen for custom storage events (for same-tab changes)
-    const handleCustomStorageChange = () => {
-      updateRole();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('tokenChanged', handleCustomStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('tokenChanged', handleCustomStorageChange);
-    };
   }, []);
 
   return role;
