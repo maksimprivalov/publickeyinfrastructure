@@ -183,7 +183,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) => {
             {roles.map(r => (
               <option key={r.value} value={r.value}>{r.label}</option>
             ))}
-          </select>
+        </select>
         </div>
 
         {/* Active checkbox */}
@@ -206,7 +206,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) => {
             cursor: 'pointer'
           }}>
             Active User
-          </label>
+      </label>
         </div>
 
         {/* Buttons */}
@@ -271,8 +271,8 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) => {
           >
             {user ? 'Update' : 'Create'}
           </button>
-        </div>
-      </form>
+      </div>
+    </form>
     </div>
   );
 };

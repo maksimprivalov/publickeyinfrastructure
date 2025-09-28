@@ -1,8 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useUserRole } from '../context/UserContext';
 
 const HomePage: React.FC = () => {
-  const isAuthenticated = !!localStorage.getItem('access_token');
+  const role = useUserRole();
+  const [hasToken, setHasToken] = useState(!!localStorage.getItem('access_token'));
+  
+  // Listen for token changes to update authentication status
+  useEffect(() => {
+    const handleTokenChange = () => {
+      setHasToken(!!localStorage.getItem('access_token'));
+    };
+
+    window.addEventListener('tokenChanged', handleTokenChange);
+    window.addEventListener('storage', handleTokenChange);
+
+    return () => {
+      window.removeEventListener('tokenChanged', handleTokenChange);
+      window.removeEventListener('storage', handleTokenChange);
+    };
+  }, []);
+
+  // Only show authenticated content if we have both token AND valid role
+  const isAuthenticated = hasToken && role;
 
   return (
     <div style={{

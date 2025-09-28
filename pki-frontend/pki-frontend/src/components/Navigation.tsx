@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useRole } from '../hooks/useRole';
 import userApi from '../api/user/userApi';
+import { useNavigate } from 'react-router-dom';
 
 const Navigation: React.FC = () => {
   const role = useRole();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isAuthenticated = !!localStorage.getItem('access_token');
+
+  const navigate = useNavigate();
 
   const navLinkStyle = (isActive: boolean) => ({
     color: '#fff',
@@ -70,7 +73,7 @@ const Navigation: React.FC = () => {
       // Dispatch custom event to notify hooks about token removal
       window.dispatchEvent(new CustomEvent('tokenChanged'));
       
-      window.location.href = '/auth';
+      navigate('/auth');
     }
   };
 
@@ -99,13 +102,17 @@ const Navigation: React.FC = () => {
   return (
     <nav style={{
       background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-      padding: '0 24px',
+      padding: '0 16px',
       color: '#fff',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       borderBottom: '1px solid rgba(255,255,255,0.1)',
       position: 'sticky',
       top: 0,
-      zIndex: 100
+      zIndex: 100,
+      width: '100%',
+      maxWidth: '100%',
+      boxSizing: 'border-box',
+      overflowX: 'hidden'
     }}>
       <div style={{
         maxWidth: 1200,

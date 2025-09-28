@@ -16,7 +16,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/auth" replace />;
   }
 
-  // If token exists but role is not loaded yet, show loading or wait
+  // If token exists but role is not loaded yet, show loading
   if (!role) {
     return (
       <div style={{
