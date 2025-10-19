@@ -12,3 +12,4 @@ public enum RevocationReason {
     PRIVILEGE_WITHDRAWN,
     AA_COMPROMISE
 }
+

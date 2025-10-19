@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { LoginForm } from '../components/LoginForm';
 import { RegisterForm } from '../components/RegisterForm';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-const queryClient = new QueryClient();
 
 const AuthPage = () => {
   const [showLogin, setShowLogin] = useState(true);
@@ -28,17 +25,16 @@ const AuthPage = () => {
   });
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <div style={{ 
-        minHeight: '100vh', 
-        minWidth: '100vw', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: '20px',
-        boxSizing: 'border-box'
-      }}>
+    <div style={{ 
+      minHeight: '100vh', 
+      minWidth: '100vw', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      padding: '20px',
+      boxSizing: 'border-box'
+    }}>
         {/* Background pattern */}
         <div style={{
           position: 'absolute',
@@ -189,7 +185,6 @@ const AuthPage = () => {
           </div>
         </div>
       </div>
-    </QueryClientProvider>
   );
 };
 

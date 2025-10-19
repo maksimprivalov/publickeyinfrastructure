@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import userApi from '../api/user/userApi';
 
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
   const [userInfo] = useState({
     email: 'user@example.com',
     name: 'John',
@@ -9,10 +12,26 @@ const Profile: React.FC = () => {
     role: 'USER'
   });
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    window.location.href = '/auth';
+  const handleLogout = async () => {
+    try {
+      // Call logout API to invalidate refresh token on server
+      await userApi.post({
+        url: '/api/users/logout',
+        authenticated: true
+      });
+    } catch (error) {
+      // Log error but still proceed with logout
+      console.warn('Logout API call failed:', error);
+    } finally {
+      // Always clear tokens and redirect, even if API call fails
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      
+      // Dispatch custom event to notify hooks about token removal
+      window.dispatchEvent(new CustomEvent('tokenChanged'));
+      
+      navigate('/auth');
+    }
   };
 
   const getRoleText = (role: string) => {
