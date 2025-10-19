@@ -106,7 +106,21 @@ public class CertificateController {
     @PostMapping("/issue/intermediate/{issuerId}")
     public ResponseEntity<Certificate> issueIntermediate(
             @PathVariable Long issuerId,
-            @RequestBody CertificateSigningRequest csr) {
+            @RequestBody CertificateSigningRequest csr,
+            HttpServletRequest request) {
+
+        String token = tokenUtils.getToken(request);
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String email = tokenUtils.getUsernameFromToken(token);
+        User currentUser = userService.findByEmail(email);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        csr.setRequestedBy(currentUser);
 
         Certificate issuer = certificateService.findById(issuerId)
                 .orElseThrow(() -> new IllegalArgumentException("Issuer not found"));
@@ -118,7 +132,21 @@ public class CertificateController {
     @PostMapping("/issue/ee/{issuerId}")
     public ResponseEntity<Certificate> issueEndEntity(
             @PathVariable Long issuerId,
-            @RequestBody CertificateSigningRequest csr) {
+            @RequestBody CertificateSigningRequest csr,
+            HttpServletRequest request) {
+
+        String token = tokenUtils.getToken(request);
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String email = tokenUtils.getUsernameFromToken(token);
+        User currentUser = userService.findByEmail(email);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        csr.setRequestedBy(currentUser);
 
         Certificate issuer = certificateService.findById(issuerId)
                 .orElseThrow(() -> new IllegalArgumentException("Issuer not found"));
