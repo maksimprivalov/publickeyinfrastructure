@@ -7,6 +7,7 @@ const CertificateIssue: React.FC = () => {
   const [availableCAs, setAvailableCAs] = useState<Certificate[]>([]);
   const [selectedCAId, setSelectedCAId] = useState<number | null>(null);
   const [csrContent, setCsrContent] = useState('');
+  const [certificateType, setCertificateType] = useState<'intermediate' | 'end-entity'>('end-entity');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -30,21 +31,7 @@ const CertificateIssue: React.FC = () => {
     }
   };
 
-  const handleIssueRoot = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      await certificatesApi.issueRootCertificate();
-      setSuccess('Корневой сертификат успешно выпущен!');
-      loadCAs(); // Обновляем список ЦА
-    } catch (err) {
-      setError(`Ошибка: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleIssueEndEntity = async () => {
+  const handleIssueCertificate = async () => {
     if (!selectedCAId) {
       setError('Выберите ЦА');
       return;
@@ -57,10 +44,21 @@ const CertificateIssue: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      await certificatesApi.issueEndEntityCertificate(selectedCAId, {
-        csrContent: csrContent.trim()
-      });
-      setSuccess('Конечный сертификат успешно выпущен!');
+      setSuccess(null);
+      
+      if (certificateType === 'intermediate') {
+        await certificatesApi.issueIntermediateCertificate(selectedCAId, {
+          csrContent: csrContent.trim()
+        });
+        setSuccess('Промежуточный сертификат успешно выпущен!');
+        loadCAs(); // Обновляем список ЦА так как добавился новый intermediate CA
+      } else {
+          await certificatesApi.issueEndEntityCertificate({
+            csrContent: csrContent.trim(),
+          });
+          setSuccess('Конечный сертификат успешно выпущен!');
+      }
+      
       setCsrContent('');
     } catch (err) {
       setError(`Ошибка: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
@@ -99,39 +97,43 @@ const CertificateIssue: React.FC = () => {
         </div>
       )}
 
-      {/* Корневой сертификат */}
-      <div style={{ 
-        backgroundColor: 'white', 
-        padding: 24, 
-        borderRadius: 8, 
-        boxShadow: '0 2px 8px #e0e7ff',
-        marginBottom: 24 
-      }}>
-        <h3>Корневой сертификат ЦА</h3>
-        <button
-          onClick={handleIssueRoot}
-          disabled={loading}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: loading ? '#9ca3af' : '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {loading ? 'Создается...' : 'Создать корневой ЦА'}
-        </button>
-      </div>
-
-      {/* Конечный сертификат */}
+      {/* Выпуск сертификата */}
       <div style={{ 
         backgroundColor: 'white', 
         padding: 24, 
         borderRadius: 8, 
         boxShadow: '0 2px 8px #e0e7ff'
       }}>
-        <h3>Конечный сертификат</h3>
+        <h3>Issue Certificate</h3>
+        
+        {/* Выбор типа сертификата */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
+            Choose certificate type:
+          </label>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                value="end-entity"
+                checked={certificateType === 'end-entity'}
+                onChange={(e) => setCertificateType(e.target.value as 'intermediate' | 'end-entity')}
+                style={{ marginRight: 8 }}
+              />
+              <span>End-Entity Certificate (Конечный сертификат)</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                value="intermediate"
+                checked={certificateType === 'intermediate'}
+                onChange={(e) => setCertificateType(e.target.value as 'intermediate' | 'end-entity')}
+                style={{ marginRight: 8 }}
+              />
+              <span>Intermediate Certificate (Промежуточный ЦА)</span>
+            </label>
+          </div>
+        </div>
         
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
@@ -185,18 +187,20 @@ MIICXjCCAUYCAQAwGTEXMBUGA1UEAwwOZXhhbXBsZS5jb20...
         </div>
 
         <button
-          onClick={handleIssueEndEntity}
+          onClick={handleIssueCertificate}
           disabled={loading || !selectedCAId || !csrContent.trim()}
           style={{
             padding: '12px 24px',
-            backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+            backgroundColor: loading ? '#9ca3af' : (certificateType === 'intermediate' ? '#10b981' : '#3b82f6'),
             color: 'white',
             border: 'none',
             borderRadius: '6px',
-            cursor: loading ? 'not-allowed' : 'pointer'
+            cursor: (loading || !selectedCAId || !csrContent.trim()) ? 'not-allowed' : 'pointer',
+            fontSize: 16,
+            fontWeight: 600
           }}
         >
-          {loading ? 'Выпускается...' : 'Выпустить сертификат'}
+          {loading ? 'Выпускается...' : `Выпустить ${certificateType === 'intermediate' ? 'промежуточный' : 'конечный'} сертификат`}
         </button>
       </div>
     </div>

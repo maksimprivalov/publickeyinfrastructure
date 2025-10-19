@@ -15,6 +15,9 @@ const CertificateDetails: React.FC = () => {
   useEffect(() => {
     if (id) {
       loadCertificate(parseInt(id));
+    } else {
+      setLoading(false);
+      setError('ID сертификата не указан');
     }
   }, [id]);
 

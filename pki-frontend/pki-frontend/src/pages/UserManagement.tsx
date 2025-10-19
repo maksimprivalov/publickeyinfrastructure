@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User } from '../models/user';
+import usersApi, { User, CreateUserRequest, UpdateUserRequest } from '../api/user/usersApi';
 import UserForm from '../components/UserForm';
 
 const UserManagement: React.FC = () => {
@@ -17,36 +17,11 @@ const UserManagement: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      // TODO: Интеграция с API пользователей
-      // const userList = await userApi.getAllUsers();
       
-      // Временная заглушка
-      const mockUsers: User[] = [
-        {
-          id: 1,
-          email: 'admin@pki.local',
-          name: 'Администратор',
-          surname: 'Системы',
-          organizationName: 'PKI Organization',
-          role: 'ADMIN',
-          isActive: true,
-          suspendedSince: null
-        },
-        {
-          id: 2,
-          email: 'operator@pki.local',
-          name: 'Оператор',
-          surname: 'ЦА',
-          organizationName: 'PKI Organization',
-          role: 'CAUSER',
-          isActive: true,
-          suspendedSince: null
-        }
-      ];
-      
-      setUsers(mockUsers);
+      const userList = await usersApi.getAllUsers();
+      setUsers(userList);
     } catch (err) {
-      setError('Ошибка при загрузке пользователей');
+      setError('Error loading users');
       console.error('Error loading users:', err);
     } finally {
       setLoading(false);
@@ -70,44 +45,37 @@ const UserManagement: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleSave = async (userData: any) => {
+  const handleSave = async (userData: CreateUserRequest | UpdateUserRequest) => {
     try {
       if (editUser) {
-        // TODO: Обновление пользователя через API
+        // Update existing user
+        const updatedUser = await usersApi.updateUser(editUser.id, userData as UpdateUserRequest);
         setUsers(list => list.map(u => 
-          u.id === (editUser as any).id 
-            ? { ...u, ...userData } 
-            : u
+          u.id === editUser.id ? updatedUser : u
         ));
       } else {
-        // TODO: Создание пользователя через API
-        const newUser = {
-          ...userData,
-          id: Math.max(...users.map(u => u.id)) + 1,
-          suspendedSince: null
-        };
+        // Create new user
+        const newUser = await usersApi.createUser(userData as CreateUserRequest);
         setUsers(list => [...list, newUser]);
       }
       setShowForm(false);
+      setError(null);
     } catch (err) {
-      setError('Ошибка при сохранении пользователя');
+      setError('Error saving user');
+      console.error('Error saving user:', err);
     }
   };
 
   const handleToggleActive = async (user: User) => {
     try {
-      // TODO: Изменение статуса пользователя через API
+      const updatedUser = await usersApi.toggleUserStatus(user.id);
       setUsers(list => list.map(u => 
-        u.id === user.id 
-          ? { 
-              ...u, 
-              isActive: !u.isActive,
-              suspendedSince: u.isActive ? new Date().toISOString() : null
-            } 
-          : u
+        u.id === user.id ? updatedUser : u
       ));
+      setError(null);
     } catch (err) {
-      setError('Ошибка при изменении статуса пользователя');
+      setError('Error changing user status');
+      console.error('Error changing user status:', err);
     }
   };
 

@@ -8,7 +8,8 @@ import CertificateTemplates from './pages/CertificateTemplates';
 import CertificateDetails from './pages/CertificateDetails';
 import CertificateIssue from './pages/CertificateIssue';
 import CertificateUpload from './pages/CertificateUpload';
-import Revocation from './pages/Revocation';
+import CertificateSearch from './pages/CertificateSearch';
+import CRLDownload from './pages/CRLDownload';
 import UserManagement from './pages/UserManagement';
 import CAManagement from './pages/CAManagement';
 import Profile from './pages/Profile';
@@ -84,17 +85,25 @@ const paths: RouteObject[] = [
     ),
   },
   {
-    path: '/certificates',
+    path: '/certificates/:id',
     element: (
-      <ProtectedRoute allowedRoles={['CAUser', 'User']}>
+      <ProtectedRoute allowedRoles={['Admin', 'CAUser', 'User']}>
         <MainLayout><CertificateDetails /></MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/search',
+    element: (
+      <ProtectedRoute allowedRoles={['Admin', 'CAUser', 'User']}>
+        <MainLayout><CertificateSearch /></MainLayout>
       </ProtectedRoute>
     ),
   },
   {
     path: '/issue',
     element: (
-      <ProtectedRoute allowedRoles={['CAUser']}>
+      <ProtectedRoute allowedRoles={['Admin', 'CAUser']}>
         <MainLayout><CertificateIssue /></MainLayout>
       </ProtectedRoute>
     ),
@@ -102,16 +111,16 @@ const paths: RouteObject[] = [
   {
     path: '/upload',
     element: (
-      <ProtectedRoute allowedRoles={['User']}>
+      <ProtectedRoute allowedRoles={['Admin', 'CAUser']}>
         <MainLayout><CertificateUpload /></MainLayout>
       </ProtectedRoute>
     ),
   },
   {
-    path: '/revocation',
+    path: '/crl',
     element: (
-      <ProtectedRoute allowedRoles={['CAUser']}>
-        <MainLayout><Revocation /></MainLayout>
+      <ProtectedRoute allowedRoles={['Admin', 'CAUser']}>
+        <MainLayout><CRLDownload /></MainLayout>
       </ProtectedRoute>
     ),
   },

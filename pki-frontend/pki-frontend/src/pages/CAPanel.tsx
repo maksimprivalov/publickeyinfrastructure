@@ -4,6 +4,7 @@ import caApi from '../api/certificates/caApi';
 import CertificateTable from '../components/CertificateTable';
 import certificatesApi from '../api/certificates/certificatesApi';
 import revocationApi from '../api/certificates/revocationApi';
+import { REVOCATION_REASONS } from '../models/revokedCertificate';
 
 const CAPanel: React.FC = () => {
   const [cas, setCas] = useState<Certificate[]>([]);
@@ -19,8 +20,9 @@ const CAPanel: React.FC = () => {
       setLoading(true);
       setError(null);
       const allCAs = await caApi.getAllCAs();
-      setCas(allCAs);
+      setCas(Array.isArray(allCAs) ? allCAs : []);
     } catch (err) {
+      setCas([]);
       setError('Ошибка при загрузке центров сертификации');
       console.error('Error loading CAs:', err);
     } finally {
@@ -46,41 +48,40 @@ const CAPanel: React.FC = () => {
     }
   };
 
-  const handleRevoke = async (cert: Certificate) => {
-    const reason = prompt('Укажите причину отзыва сертификата ЦА (это серьёзное действие!):');
-    if (!reason) return;
+const handleRevoke = async (cert: Certificate) => {
+  let reason: string | null = null;
 
-    const confirmed = confirm(`Вы уверены, что хотите отозвать сертификат ЦА "${cert.subject}"? Это повлияет на все сертификаты, выпущенные этим ЦА.`);
-    if (!confirmed) return;
+  // Показываем пользователю список допустимых причин
+  while (true) {
+    reason = prompt(
+      'Укажите причину отзыва сертификата:\n' + REVOCATION_REASONS.join('\n')
+    );
+    if (reason === null) return; // пользователь отменил
+    reason = reason.toUpperCase().trim();
+    if (REVOCATION_REASONS.includes(reason as typeof REVOCATION_REASONS[number])) break;
+    alert('Неверная причина. Выберите одну из перечисленных.');
+  }
 
-    try {
-      setError(null);
-      await revocationApi.revokeCertificate(cert.id, reason);
-      
-      setCas(prevCas => 
-        prevCas.map(ca => 
-          ca.id === cert.id 
-            ? { ...ca, status: 'REVOKED' as const }
-            : ca
-        )
-      );
+  try {
+    setError(null);
+    await revocationApi.revokeCertificate(cert.id, reason);
 
-      alert('Сертификат ЦА успешно отозван');
-    } catch (err) {
-      setError(`Ошибка при отзыве сертификата ЦА: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
-    }
-  };
+    // Обновляем статус сертификата в локальном состоянии
+    setCas(list =>
+      list.map(c =>
+        c.id === cert.id
+          ? { ...c, status: 'REVOKED' as const }
+          : c
+      )
+    );
 
-  const createRootCA = async () => {
-    try {
-      setError(null);
-      const newCA = await caApi.createRootCA();
-      setCas(prev => [...prev, newCA]);
-      alert('Корневой ЦА успешно создан');
-    } catch (err) {
-      setError(`Ошибка при создании корневого ЦА: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
-    }
-  };
+    alert('Сертификат успешно отозван');
+  } catch (err) {
+    setError(`Ошибка при отзыве сертификата: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+    console.error('Error revoking certificate:', err);
+  }
+};
+
 
   return (
     <div style={{ padding: 32 }}>
@@ -95,24 +96,10 @@ const CAPanel: React.FC = () => {
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              cursor: 'pointer',
-              marginRight: 8
-            }}
-          >
-            Обновить
-          </button>
-          <button
-            onClick={createRootCA}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
               cursor: 'pointer'
             }}
           >
-            Создать корневой ЦА
+            Обновить
           </button>
         </div>
       </div>
