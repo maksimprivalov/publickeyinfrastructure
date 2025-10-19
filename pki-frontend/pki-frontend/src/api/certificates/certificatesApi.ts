@@ -2,10 +2,9 @@
 import type { AuthAxiosRequestConfig, IApi } from "../data/apiTypes";
 import apiClient from "../../interceptor/interceptor";
 import type { Certificate } from "../../models/certificate";
-import type { CreateCSRRequest } from "../../models/certificateSigningRequest";
+import type { CertificateSigningRequest, CreateCSRRequest } from "../../models/certificateSigningRequest";
 import type { CertificateTemplate } from "../../models/certificateTemplate";
-import userApi, { JwtPayload, UserApi } from "../user/userApi";
-import { jwtDecode } from "jwt-decode";
+import { UserApi } from "../user/userApi";
 
 class CertificatesApi implements IApi {
   private baseUrl = "/api/certificates";
@@ -62,9 +61,12 @@ class CertificatesApi implements IApi {
   }
 
   // Выпустить промежуточный сертификат
-  async issueIntermediateCertificate(issuerId: number, csr: CreateCSRRequest): Promise<Certificate> {
+  async issueIntermediateCertificate(csr: CreateCSRRequest): Promise<Certificate> {
+
+    const decodedUser = UserApi.getCurrentUser()
+
     const response = await this.post({
-      url: `${this.baseUrl}/issue/intermediate/${issuerId}`,
+      url: `${this.baseUrl}/issue/intermediate/${decodedUser?.id}`,
       data: csr,
       authenticated: true
     });
@@ -72,26 +74,17 @@ class CertificatesApi implements IApi {
   }
 
   // Выпустить конечный сертификат
-async issueEndEntityCertificate(csr: { csrContent: string }): Promise<Certificate> {
+  async issueEndEntityCertificate(csr: CreateCSRRequest): Promise<Certificate> {
 
-  const decodedRequestedBy = UserApi.getCurrentUser()
+    const decodedUser = UserApi.getCurrentUser()
 
-  // const payload = {
-  //   csrContent: csr.csrContent,
-  //   requestedBy: decodedRequestedBy,
-  //   selectedCA: { id: 2 },
-  //   status: 'PENDING'
-  // };
-
-  const payload = { csr: {...csr, requestedBy: decodedRequestedBy} } 
-
-  const response = await this.post({
-    url: `${this.baseUrl}/issue/ee/${decodedRequestedBy?.id}`,
-    data: payload,
-    authenticated: true
-  });
-  return response.data;
-}
+    const response = await this.post({
+      url: `${this.baseUrl}/issue/ee/${decodedUser?.id}`,
+      data: csr,
+      authenticated: true
+    });
+    return response.data;
+  }
 
   // === POST methods - выпуск с шаблонами ===
 
@@ -191,38 +184,6 @@ async issueEndEntityCertificate(csr: { csrContent: string }): Promise<Certificat
       url: `${this.baseUrl}/${id}`,
       authenticated: true
     });
-  }
-
-  // === Search and pagination methods ===
-
-  // Search certificates with filters and pagination
-  async searchCertificates(filters?: {
-    status?: 'VALID' | 'EXPIRED' | 'REVOKED';
-    type?: 'ROOT' | 'INTERMEDIATE' | 'END_ENTITY';
-    organization?: string;
-    page?: number;
-    size?: number;
-  }): Promise<{
-    content: Certificate[];
-    totalElements: number;
-    totalPages: number;
-    number: number;
-    size: number;
-  }> {
-    const params: any = {};
-    
-    if (filters?.status) params.status = filters.status;
-    if (filters?.type) params.type = filters.type;
-    if (filters?.organization) params.organization = filters.organization;
-    if (filters?.page !== undefined) params.page = filters.page;
-    if (filters?.size !== undefined) params.size = filters.size;
-
-    const response = await this.get({
-      url: `${this.baseUrl}/search`,
-      params,
-      authenticated: true
-    });
-    return response.data;
   }
 }
 
