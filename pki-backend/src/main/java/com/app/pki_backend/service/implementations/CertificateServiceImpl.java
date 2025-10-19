@@ -169,6 +169,13 @@ public class CertificateServiceImpl implements CertificateService {
 
     @Override
     public Certificate issueEndEntityCertificate(CertificateSigningRequest csr, Certificate issuer) {
+
+        System.out.println(csr.getId());
+        System.out.println(csr.getCsrContent());
+        System.out.println(csr.getRequestedBy());
+        System.out.println(csr.getSelectedCA());
+        System.out.println(csr.getRejectionReason());
+
         try {
             // 1. Verify that issuer is a CA
             if (issuer.getType() == CertificateType.END_ENTITY) {
