@@ -2,8 +2,10 @@
 import type { AuthAxiosRequestConfig, IApi } from "../data/apiTypes";
 import apiClient from "../../interceptor/interceptor";
 import type { Certificate } from "../../models/certificate";
-import type { CertificateSigningRequest, CreateCSRRequest } from "../../models/certificateSigningRequest";
+import type { CreateCSRRequest } from "../../models/certificateSigningRequest";
 import type { CertificateTemplate } from "../../models/certificateTemplate";
+import userApi, { JwtPayload, UserApi } from "../user/userApi";
+import { jwtDecode } from "jwt-decode";
 
 class CertificatesApi implements IApi {
   private baseUrl = "/api/certificates";
@@ -70,14 +72,26 @@ class CertificatesApi implements IApi {
   }
 
   // Выпустить конечный сертификат
-  async issueEndEntityCertificate(issuerId: number, csr: CreateCSRRequest): Promise<Certificate> {
-    const response = await this.post({
-      url: `${this.baseUrl}/issue/ee/${issuerId}`,
-      data: csr,
-      authenticated: true
-    });
-    return response.data;
-  }
+async issueEndEntityCertificate(csr: { csrContent: string }): Promise<Certificate> {
+
+  const decodedRequestedBy = UserApi.getCurrentUser()
+
+  // const payload = {
+  //   csrContent: csr.csrContent,
+  //   requestedBy: decodedRequestedBy,
+  //   selectedCA: { id: 2 },
+  //   status: 'PENDING'
+  // };
+
+  const payload = { csr: {...csr, requestedBy: decodedRequestedBy} } 
+
+  const response = await this.post({
+    url: `${this.baseUrl}/issue/ee/${decodedRequestedBy?.id}`,
+    data: payload,
+    authenticated: true
+  });
+  return response.data;
+}
 
   // === POST methods - выпуск с шаблонами ===
 
@@ -177,6 +191,38 @@ class CertificatesApi implements IApi {
       url: `${this.baseUrl}/${id}`,
       authenticated: true
     });
+  }
+
+  // === Search and pagination methods ===
+
+  // Search certificates with filters and pagination
+  async searchCertificates(filters?: {
+    status?: 'VALID' | 'EXPIRED' | 'REVOKED';
+    type?: 'ROOT' | 'INTERMEDIATE' | 'END_ENTITY';
+    organization?: string;
+    page?: number;
+    size?: number;
+  }): Promise<{
+    content: Certificate[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+  }> {
+    const params: any = {};
+    
+    if (filters?.status) params.status = filters.status;
+    if (filters?.type) params.type = filters.type;
+    if (filters?.organization) params.organization = filters.organization;
+    if (filters?.page !== undefined) params.page = filters.page;
+    if (filters?.size !== undefined) params.size = filters.size;
+
+    const response = await this.get({
+      url: `${this.baseUrl}/search`,
+      params,
+      authenticated: true
+    });
+    return response.data;
   }
 }
 

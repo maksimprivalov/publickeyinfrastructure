@@ -9,6 +9,7 @@ interface CertificateTableProps {
 }
 
 const CertificateTable: React.FC<CertificateTableProps> = ({ certificates, onDownload, onRevoke, loading = false }) => {
+  
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
   };
@@ -61,7 +62,7 @@ const CertificateTable: React.FC<CertificateTableProps> = ({ certificates, onDow
         </tr>
       </thead>
       <tbody>
-        {certificates.map(cert => (
+        {Array.isArray(certificates) ? certificates.map(cert => (
           <tr key={cert.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
             <td style={{ padding: 12, fontFamily: 'monospace' }}>{cert.serialNumber}</td>
             <td style={{ padding: 12 }}>{cert.subject}</td>
@@ -114,7 +115,13 @@ const CertificateTable: React.FC<CertificateTableProps> = ({ certificates, onDow
               )}
             </td>
           </tr>
-        ))}
+        )) : (
+          <tr>
+            <td colSpan={6} style={{ padding: 20, textAlign: 'center', color: '#6b7280' }}>
+              {certificates ? 'Invalid data format' : 'No certificates data'}
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
   );

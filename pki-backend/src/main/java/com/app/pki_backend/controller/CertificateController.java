@@ -22,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -104,6 +105,7 @@ public class CertificateController {
 //    }
 
     @PostMapping("/issue/intermediate/{issuerId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CAUSER')")
     public ResponseEntity<Certificate> issueIntermediate(
             @PathVariable Long issuerId,
             @RequestBody CertificateSigningRequest csr,
@@ -130,6 +132,7 @@ public class CertificateController {
     }
 
     @PostMapping("/issue/ee/{issuerId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CAUSER')")
     public ResponseEntity<Certificate> issueEndEntity(
             @PathVariable Long issuerId,
             @RequestBody CertificateSigningRequest csr,
@@ -155,12 +158,14 @@ public class CertificateController {
         return ResponseEntity.status(HttpStatus.CREATED).body(cert);
     }
     @PostMapping("/issue/root/template/{templateId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Certificate> issueRootWithTemplate(@PathVariable Long templateId) {
         Certificate cert = certificateService.issueRootWithTemplate(templateId);
         return ResponseEntity.status(HttpStatus.CREATED).body(cert);
     }
 
     @PostMapping("/issue/intermediate/template/{templateId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CAUSER')")
     public ResponseEntity<Certificate> issueIntermediateWithTemplate(
             @PathVariable Long templateId,
             @RequestBody CertificateSigningRequest csr) {
@@ -170,6 +175,7 @@ public class CertificateController {
     }
 
     @PostMapping("/issue/ee/template/{templateId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CAUSER')")
     public ResponseEntity<Certificate> issueEndEntityWithTemplate(
             @PathVariable Long templateId,
             @RequestBody CertificateSigningRequest csr) {
@@ -180,18 +186,21 @@ public class CertificateController {
 
     // === work with templates ===
     @PostMapping("/templates")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CAUSER')")
     public ResponseEntity<CertificateTemplate> createTemplate(@RequestBody CertificateTemplate template) {
         CertificateTemplate saved = templateService.createTemplate(template);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @GetMapping("/templates")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CAUSER')")
     public ResponseEntity<List<CertificateTemplate>> listTemplates() {
         List<CertificateTemplate> templates = templateService.getAllTemplates();
         return ResponseEntity.ok(templates);
     }
 
     @DeleteMapping("/templates/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CAUSER')")
     public ResponseEntity<String> deleteTemplate(@PathVariable Integer id) {
         templateService.deleteTemplate(id);
         return ResponseEntity.ok("Template " + id + " deleted.");
@@ -212,6 +221,7 @@ public class CertificateController {
     }
 
     @PostMapping("/csr/upload/{issuerId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CAUSER')")
     public ResponseEntity<Certificate> uploadCsr(
             @PathVariable Long issuerId,
             @RequestParam("file") MultipartFile file,

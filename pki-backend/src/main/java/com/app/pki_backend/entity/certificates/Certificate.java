@@ -1,6 +1,7 @@
 package com.app.pki_backend.entity.certificates;
 
 import com.app.pki_backend.entity.user.User;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -52,13 +53,16 @@ public class Certificate {
 
     @ManyToOne
     @JoinColumn(name = "owner_id")
+    @JsonIgnoreProperties({"certificates", "password", "activationCode"})
     private User owner;
 
     @ManyToOne
     @JoinColumn(name = "issuer_certificate_id")
+    @JsonIgnoreProperties({"issuedCertificates", "issuerCertificate", "owner"})
     private Certificate issuerCertificate;
 
     @OneToMany(mappedBy = "issuerCertificate", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties({"issuedCertificates", "issuerCertificate", "owner"})
     private List<Certificate> issuedCertificates; // Certificates issued by this certificate
 
     @Column(columnDefinition = "TEXT")

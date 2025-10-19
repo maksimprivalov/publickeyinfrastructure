@@ -6,7 +6,6 @@ const CAManagement: React.FC = () => {
   const [cas, setCas] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [creatingCA, setCreatingCA] = useState(false);
 
   useEffect(() => {
     loadCAs();
@@ -26,20 +25,6 @@ const CAManagement: React.FC = () => {
     }
   };
 
-  const createRootCA = async () => {
-    try {
-      setCreatingCA(true);
-      setError(null);
-      const newCA = await caApi.createRootCA();
-      setCas(prev => [...prev, newCA]);
-      alert('Корневой ЦА успешно создан');
-    } catch (err) {
-      setError(`Ошибка при создании корневого ЦА: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
-      console.error('Error creating root CA:', err);
-    } finally {
-      setCreatingCA(false);
-    }
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
@@ -84,25 +69,10 @@ const CAManagement: React.FC = () => {
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              cursor: 'pointer',
-              marginRight: 8
+              cursor: 'pointer'
             }}
           >
             Обновить
-          </button>
-          <button
-            onClick={createRootCA}
-            disabled={creatingCA}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: creatingCA ? '#9ca3af' : '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: creatingCA ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {creatingCA ? 'Создается...' : 'Создать корневой ЦА'}
           </button>
         </div>
       </div>

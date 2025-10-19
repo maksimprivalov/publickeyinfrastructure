@@ -153,20 +153,21 @@ const Navigation: React.FC = () => {
                   <NavLink to="/admin">Admin Panel</NavLink>
                   <NavLink to="/users">Users</NavLink>
                   <NavLink to="/ca">Certificate Authorities</NavLink>
+                  <NavLink to="/issue">Issue Certificate</NavLink>
                   <NavLink to="/templates">Templates</NavLink>
+                  <NavLink to="/upload">Upload CSR</NavLink>
                 </>
               )}
               {role === 'CAUser' && (
                 <>
                   <NavLink to="/ca-panel">CA Panel</NavLink>
-                  <NavLink to="/certificates">Certificates</NavLink>
-                  <NavLink to="/revocation">Revocation</NavLink>
+                  <NavLink to="/issue">Issue Certificate</NavLink>
+                  <NavLink to="/upload">Upload CSR</NavLink>
                 </>
               )}
               {role === 'User' && (
                 <>
                   <NavLink to="/user">My Certificates</NavLink>
-                  <NavLink to="/upload">Upload CSR</NavLink>
                 </>
               )}
 
@@ -252,20 +253,21 @@ const Navigation: React.FC = () => {
                   <NavLink to="/admin">Admin Panel</NavLink>
                   <NavLink to="/users">Users</NavLink>
                   <NavLink to="/ca">Certificate Authorities</NavLink>
+                  <NavLink to="/issue">Issue Certificate</NavLink>
                   <NavLink to="/templates">Templates</NavLink>
+                  <NavLink to="/upload">Upload CSR</NavLink>
                 </>
               )}
               {role === 'CAUser' && (
                 <>
                   <NavLink to="/ca-panel">CA Panel</NavLink>
-                  <NavLink to="/certificates">Certificates</NavLink>
-                  <NavLink to="/revocation">Revocation</NavLink>
+                  <NavLink to="/issue">Issue Certificate</NavLink>
+                  <NavLink to="/upload">Upload CSR</NavLink>
                 </>
               )}
               {role === 'User' && (
                 <>
                   <NavLink to="/user">My Certificates</NavLink>
-                  <NavLink to="/upload">Upload CSR</NavLink>
                 </>
               )}
               <div style={{ height: 1, background: 'rgba(255,255,255,0.2)', margin: '8px 0' }} />

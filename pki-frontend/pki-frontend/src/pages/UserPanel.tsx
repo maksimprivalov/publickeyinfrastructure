@@ -4,6 +4,7 @@ import CertificateTable from '../components/CertificateTable';
 import { Certificate } from '../models/certificate';
 import certificatesApi from '../api/certificates/certificatesApi';
 import revocationApi from '../api/certificates/revocationApi';
+import { REVOCATION_REASONS } from '../models/revokedCertificate';
 
 const UserPanel: React.FC = () => {
   const navigate = useNavigate();
@@ -16,39 +17,33 @@ const UserPanel: React.FC = () => {
     loadCertificates();
   }, []);
 
-  const loadCertificates = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Check if we have a valid token before making the API call
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        setError('No authentication token found');
-        return;
+    const loadCertificates = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const certs = await certificatesApi.getAllCertificates();
+        setCertificates(Array.isArray(certs) ? certs : []);
+      } catch (err: any) {
+        console.error('Error loading certificates:', err);
+        setCertificates([]);
+        
+        // More specific error handling
+        if (err.message === 'No refresh token available' || err.message === 'Token refresh failed') {
+          setError('Session expired. Please log in again.');
+        } else if (err.response?.status === 401) {
+          setError('Authentication required. Please log in again.');
+        } else if (err.response?.status === 403) {
+          setError('You do not have permission to view certificates.');
+        } else if (err.name === 'AxiosError' && !err.response) {
+          setError('Unable to connect to server. Please check your connection and try again.');
+        } else {
+          setError('Error loading certificates. Please try again.');
+        }
+      } finally {
+        setLoading(false);
       }
-
-      const certs = await certificatesApi.getAllCertificates();
-      setCertificates(certs);
-    } catch (err: any) {
-      console.error('Error loading certificates:', err);
-      
-      // More specific error handling to prevent unnecessary redirects
-      if (err.message === 'No refresh token available' || err.message === 'Token refresh failed') {
-        setError('Session expired. Please log in again.');
-      } else if (err.response?.status === 401) {
-        setError('Authentication required. Please log in again.');
-      } else if (err.response?.status === 403) {
-        setError('You do not have permission to view certificates.');
-      } else if (err.name === 'AxiosError' && !err.response) {
-        setError('Unable to connect to server. Please check your connection and try again.');
-      } else {
-        setError('Error loading certificates. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   const handleDownload = async (cert: Certificate) => {
     try {
@@ -70,29 +65,31 @@ const UserPanel: React.FC = () => {
     }
   };
 
-  const handleRevoke = async (cert: Certificate) => {
-    const reason = prompt('Укажите причину отзыва сертификата:');
-    if (!reason) return;
+const handleRevoke = async (cert: Certificate) => {
+  let reason: string | null = null;
 
-    try {
-      setError(null);
-      await revocationApi.revokeCertificate(cert.id, reason);
-      
-      // Обновляем статус сертификата в локальном состоянии
-      setCertificates(list => 
-        list.map(c => 
-          c.id === cert.id 
-            ? { ...c, status: 'REVOKED' as const }
-            : c
-        )
-      );
+  // Показываем пользователю список допустимых причин
+  while (true) {
+    reason = prompt(
+      'Укажите причину отзыва сертификата:\n' + REVOCATION_REASONS.join('\n')
+    );
+    if (reason === null) return; // пользователь отменил
+    reason = reason.toUpperCase().trim();
+    if (REVOCATION_REASONS.includes(reason as typeof REVOCATION_REASONS[number])) break;
+    alert('Неверная причина. Выберите одну из перечисленных.');
+  }
 
-      alert('Сертификат успешно отозван');
-    } catch (err) {
-      setError(`Ошибка при отзыве сертификата: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
-      console.error('Error revoking certificate:', err);
-    }
-  };
+  try {
+    setError(null);
+    await revocationApi.revokeCertificate(cert.id, reason);
+
+    alert('Сертификат успешно отозван');
+    await loadCertificates()
+  } catch (err) {
+    setError(`Ошибка при отзыве сертификата: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+    console.error('Error revoking certificate:', err);
+  }
+};
 
   return (
     <div style={{ padding: 32 }}>
