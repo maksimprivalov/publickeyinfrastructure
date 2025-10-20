@@ -39,5 +39,4 @@ build/
 server-keystore.p12
 master-keys/
 *.p12
-*.key
 *.pem
