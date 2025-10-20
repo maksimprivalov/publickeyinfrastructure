@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("error", ex.getMessage());
-        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        body.put("httpStatus", HttpStatus.INTERNAL_SERVER_ERROR.value());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
@@ -26,7 +26,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("error", ex.getMessage());
-        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("httpStatus", HttpStatus.BAD_REQUEST.value());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 }

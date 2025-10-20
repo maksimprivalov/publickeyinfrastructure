@@ -1,6 +1,6 @@
 package com.app.pki_backend.service.implementations;
 
-import com.app.pki_backend.dto.certificate.CertificateSigningRequest;
+import com.app.pki_backend.entity.certificates.CertificateSigningRequest;
 import com.app.pki_backend.entity.certificates.Certificate;
 import com.app.pki_backend.entity.certificates.CertificateStatus;
 import com.app.pki_backend.entity.certificates.CertificateTemplate;
@@ -12,8 +12,10 @@ import com.app.pki_backend.service.interfaces.CryptographyService;
 import com.app.pki_backend.service.interfaces.PrivateKeyService;
 import com.app.pki_backend.service.interfaces.MasterKeyService;
 import com.app.pki_backend.specification.CertificateSpecification;
+import com.app.pki_backend.util.CSRValidator;
 import com.app.pki_backend.util.CertificateBuilder;
 import com.app.pki_backend.util.PEMConverter;
+import com.app.pki_backend.audit.AuditLogger;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -44,12 +46,14 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-@Transactional
+@Transactional(rollbackFor = Exception.class) // ✅ FIX: Добавлен rollback для всех исключений
 public class CertificateServiceImpl implements CertificateService {
 
     @Autowired
@@ -66,8 +70,18 @@ public class CertificateServiceImpl implements CertificateService {
 
     @Autowired
     private MasterKeyService masterKeyService;
+
     @Autowired
     private CertificateTemplateServiceImpl certificateTemplateService;
+
+    @Autowired
+    private CertificateChainValidationService chainValidationService;
+
+    @Autowired
+    private CSRValidator csrValidator;
+
+    @Autowired
+    private AuditLogger auditLogger; // ✅ FIX: Добавлено аудит-логирование
 
     @Value("${pki.root-ca.subject}")
     private String rootCASubject;
@@ -81,12 +95,17 @@ public class CertificateServiceImpl implements CertificateService {
     @Value("${pki.intermediate-ca.validity-years}")
     private int intermediateValidityYears;
 
+    @Value("${pki.intermediate-ca.path-length:0}") // ✅ FIX: Конфигурируемый PathLength
+    private int defaultIntermediatePathLength;
+
     @Value("${pki.end-entity.validity-years}")
     private int endEntityValidityYears;
 
     @Override
     public Certificate issueRootCertificate() {
         try {
+            auditLogger.log("ISSUE_ROOT_CERTIFICATE", "system"); // ✅ FIX: Аудит
+
             // 1. Generate a key pair for Root CA
             KeyPair keyPair = cryptographyService.generateKeyPair(keySize);
 
@@ -108,7 +127,7 @@ public class CertificateServiceImpl implements CertificateService {
                     .issuerCertificate(null) // Self-signed
                     .build();
 
-            Certificate savedCertificate = certificateRepository.save(certificate);
+            Certificate savedCertificate = certificateRepository.saveAndFlush(certificate);
 
             // 4. Store private key securely using PrivateKeyService
             SecretKey masterKey = masterKeyService.getCurrentMasterKey();
@@ -124,30 +143,63 @@ public class CertificateServiceImpl implements CertificateService {
     @Override
     public Certificate issueIntermediateCertificate(CertificateSigningRequest csr, Certificate issuer) {
         try {
-            // 1. Verify that issuer is Root CA or another Intermediate CA
+            // ✅ FIX: Валидация ПЕРЕД созданием сертификата
             if (issuer.getType() == CertificateType.END_ENTITY) {
                 throw new IllegalArgumentException("End Entity certificate cannot issue Intermediate CA");
             }
 
-            // 2. Parse CSR
+            // ✅ FIX: Проверка прав для PathLength
+            if (issuer.getType().equals(CertificateType.INTERMEDIATE_CA) &&
+                    !chainValidationService.canIssueIntermediateCA(issuer)) {
+                throw new IllegalStateException(
+                        "Issuer " + issuer.getId() + " cannot issue Intermediate CA certificates " +
+                                "(PathLength constraint)"
+                );
+            }
+
+            // Парсинг CSR для извлечения Subject
             PKCS10CertificationRequest pkcs10CSR = pemConverter.parseCSR(csr.getCsrContent());
-            JcaPKCS10CertificationRequest jcaCSR = new JcaPKCS10CertificationRequest(pkcs10CSR);
-            PublicKey publicKey = jcaCSR.getPublicKey();
+
+            if (!csrValidator.validateCSRSignature(pkcs10CSR)) {
+                throw new IllegalArgumentException(
+                        "Invalid CSR signature. Proof of private key ownership failed."
+                );
+            }
+
             X500Name subject = pkcs10CSR.getSubject();
 
-            // 3. Get issuer's private key for signing
+            // ✅ FIX: КРИТИЧНО - Генерируем ключи для CA В СИСТЕМЕ, а не используем из CSR!
+            // Intermediate CA должен иметь приватный ключ в системе для подписи других сертификатов
+            KeyPair intermediateKeyPair = cryptographyService.generateKeyPair(keySize);
+            PublicKey publicKey = intermediateKeyPair.getPublic();
+
+            // Получить приватный ключ издателя для подписи
             PrivateKey issuerPrivateKey = getIssuerPrivateKey(issuer);
 
-            // 4. Create Intermediate CA certificate
+            // ✅ FIX: Вычисляем PathLength для нового Intermediate CA
+            int newPathLength = calculatePathLengthForNewCA(issuer);
+
+            // ✅ FIX: Валидация ПЕРЕД созданием сертификата
+            LocalDateTime notBefore = LocalDateTime.now();
+            LocalDateTime notAfter = notBefore.plusYears(intermediateValidityYears);
+
+            chainValidationService.validateIssuerBeforeSigning(
+                    issuer,
+                    notBefore,
+                    notAfter
+            );
+
+            // Создание Intermediate CA сертификата
             X509Certificate intermediateCert = buildIntermediateCACertificate(
                     subject.toString(),
                     publicKey,
                     issuerPrivateKey,
                     issuer,
-                    intermediateValidityYears
+                    intermediateValidityYears,
+                    newPathLength // ✅ FIX: Передаем вычисленный PathLength
             );
 
-            // 5. Create and save Certificate entity using CertificateBuilder
+            // Создание и сохранение Certificate entity
             Certificate certificate = CertificateBuilder.create()
                     .fromX509Certificate(intermediateCert, pemConverter, publicKey)
                     .validityPeriod(intermediateValidityYears)
@@ -158,7 +210,22 @@ public class CertificateServiceImpl implements CertificateService {
                     .owner(csr.getRequestedBy())
                     .build();
 
-            Certificate savedCertificate = certificateRepository.save(certificate);
+            Certificate savedCertificate = certificateRepository.saveAndFlush(certificate);
+
+            // ✅ FIX: СОХРАНИТЬ приватный ключ для Intermediate CA
+            SecretKey masterKey = masterKeyService.getCurrentMasterKey();
+            privateKeyService.storePrivateKey(
+                    savedCertificate,
+                    intermediateKeyPair.getPrivate(),
+                    masterKey
+            );
+
+            // ✅ FIX: Аудит-лог
+            auditLogger.log(
+                    "ISSUE_INTERMEDIATE_CA id=" + savedCertificate.getId() +
+                            " issuer=" + issuer.getId(),
+                    csr.getRequestedBy() != null ? csr.getRequestedBy().getEmail() : "unknown"
+            );
 
             return savedCertificate;
 
@@ -169,29 +236,39 @@ public class CertificateServiceImpl implements CertificateService {
 
     @Override
     public Certificate issueEndEntityCertificate(CertificateSigningRequest csr, Certificate issuer) {
-
-        System.out.println(csr.getId());
-        System.out.println(csr.getCsrContent());
-        System.out.println(csr.getRequestedBy());
-        System.out.println(csr.getSelectedCA());
-        System.out.println(csr.getRejectionReason());
-
         try {
-            // 1. Verify that issuer is a CA
+            // ✅ FIX: Валидация ПЕРЕД созданием сертификата
             if (issuer.getType() == CertificateType.END_ENTITY) {
                 throw new IllegalArgumentException("End Entity certificate cannot issue other certificates");
             }
 
-            // 2. Parse CSR
+            // Парсинг CSR
             PKCS10CertificationRequest pkcs10CSR = pemConverter.parseCSR(csr.getCsrContent());
+
+            if (!csrValidator.validateCSRSignature(pkcs10CSR)) {
+                throw new IllegalArgumentException(
+                        "Invalid CSR signature. Proof of private key ownership failed."
+                );
+            }
+
             JcaPKCS10CertificationRequest jcaCSR = new JcaPKCS10CertificationRequest(pkcs10CSR);
             PublicKey publicKey = jcaCSR.getPublicKey();
             X500Name subject = pkcs10CSR.getSubject();
 
-            // 3. Get issuer's private key for signing
+            // Получить приватный ключ издателя
             PrivateKey issuerPrivateKey = getIssuerPrivateKey(issuer);
 
-            // 4. Create End Entity certificate
+            // ✅ FIX: Валидация ПЕРЕД созданием сертификата
+            LocalDateTime notBefore = LocalDateTime.now();
+            LocalDateTime notAfter = notBefore.plusYears(endEntityValidityYears);
+
+            chainValidationService.validateIssuerBeforeSigning(
+                    issuer,
+                    notBefore,
+                    notAfter
+            );
+
+            // Создание End Entity сертификата
             X509Certificate endEntityCert = buildEndEntityCertificate(
                     subject.toString(),
                     publicKey,
@@ -200,7 +277,7 @@ public class CertificateServiceImpl implements CertificateService {
                     endEntityValidityYears
             );
 
-            // 5. Create and save Certificate entity using CertificateBuilder
+            // Создание и сохранение Certificate entity
             Certificate certificate = CertificateBuilder.create()
                     .fromX509Certificate(endEntityCert, pemConverter, publicKey)
                     .validityPeriod(endEntityValidityYears)
@@ -211,7 +288,16 @@ public class CertificateServiceImpl implements CertificateService {
                     .owner(csr.getRequestedBy())
                     .build();
 
-            Certificate savedCertificate = certificateRepository.save(certificate);
+            Certificate savedCertificate = certificateRepository.saveAndFlush(certificate);
+
+            // End Entity НЕ хранит приватный ключ в системе (пользователь сам хранит)
+
+            // ✅ FIX: Аудит-лог
+            auditLogger.log(
+                    "ISSUE_END_ENTITY id=" + savedCertificate.getId() +
+                            " issuer=" + issuer.getId(),
+                    csr.getRequestedBy() != null ? csr.getRequestedBy().getEmail() : "unknown"
+            );
 
             return savedCertificate;
 
@@ -220,23 +306,31 @@ public class CertificateServiceImpl implements CertificateService {
         }
     }
 
-    @Override
-    public Certificate issueCertificateFromCSR(byte[] csrData, Certificate issuer) {
+    // ✅ FIX: Новый метод для вычисления PathLength
+    private int calculatePathLengthForNewCA(Certificate issuer) {
         try {
-            // Convert byte[] to PEM string and create CSR object
-            String csrPEM = new String(csrData);
-            CertificateSigningRequest csr = new CertificateSigningRequest();
-            csr.setCsrContent(csrPEM);
+            if (issuer.getType() == CertificateType.ROOT_CA) {
+                // Root CA может выпустить Intermediate с настраиваемым PathLength
+                return defaultIntermediatePathLength;
+            }
 
-            // Determine certificate type based on CSR and issue corresponding certificate
-            PKCS10CertificationRequest pkcs10CSR = pemConverter.parseCSR(csrPEM);
+            // Для Intermediate CA: PathLength нового CA = PathLength родителя - 1
+            X509Certificate x509Issuer = pemConverter.parseCertificate(issuer.getCertificateData());
+            int issuerPathLength = x509Issuer.getBasicConstraints();
 
-            // By default, issue End Entity certificate
-            // In real system, type should be determined based on CSR attributes or policies
-            return issueEndEntityCertificate(csr, issuer);
+            if (issuerPathLength == -1) {
+                throw new IllegalStateException("Issuer is not a CA certificate");
+            }
+
+            if (issuerPathLength == 0) {
+                throw new IllegalStateException("Issuer cannot issue more CA certificates (pathLength=0)");
+            }
+
+            // Новый PathLength = родительский - 1, минимум 0
+            return Math.max(0, issuerPathLength - 1);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to issue certificate from CSR", e);
+            throw new RuntimeException("Failed to calculate pathLength for new CA", e);
         }
     }
 
@@ -279,7 +373,8 @@ public class CertificateServiceImpl implements CertificateService {
             PublicKey publicKey,
             PrivateKey issuerPrivateKey,
             Certificate issuerCert,
-            int validityYears) throws Exception {
+            int validityYears,
+            int pathLength) throws Exception { // ✅ FIX: Добавлен параметр pathLength
 
         X500Name subject = new X500Name(subjectDN);
         X500Name issuer = new X500Name(issuerCert.getSubject());
@@ -298,7 +393,7 @@ public class CertificateServiceImpl implements CertificateService {
                 publicKey
         );
 
-        addIntermediateCAExtensions(certBuilder);
+        addIntermediateCAExtensions(certBuilder, pathLength); // ✅ FIX: Передаем pathLength
 
         ContentSigner signer = new JcaContentSignerBuilder("SHA256WithRSA")
                 .build(issuerPrivateKey);
@@ -347,7 +442,7 @@ public class CertificateServiceImpl implements CertificateService {
         certBuilder.addExtension(
                 Extension.basicConstraints,
                 true, // critical
-                new BasicConstraints(true) // isCA = true
+                new BasicConstraints(true) // isCA = true, pathLength unlimited
         );
 
         // Key Usage - certificate and CRL signing
@@ -358,12 +453,15 @@ public class CertificateServiceImpl implements CertificateService {
         );
     }
 
-    private void addIntermediateCAExtensions(X509v3CertificateBuilder certBuilder) throws Exception {
-        // Basic Constraints - this is Intermediate CA with path length constraint
+    private void addIntermediateCAExtensions(
+            X509v3CertificateBuilder certBuilder,
+            int pathLength) throws Exception { // ✅ FIX: Добавлен параметр pathLength
+
+        // Basic Constraints - this is Intermediate CA with configurable path length
         certBuilder.addExtension(
                 Extension.basicConstraints,
                 true, // critical
-                new BasicConstraints(0) // pathLenConstraint = 0 (cannot issue other CAs)
+                new BasicConstraints(pathLength) // ✅ FIX: Конфигурируемый pathLength
         );
 
         // Key Usage - certificate and CRL signing
@@ -387,8 +485,8 @@ public class CertificateServiceImpl implements CertificateService {
                 Extension.keyUsage,
                 true, // critical
                 new KeyUsage(KeyUsage.digitalSignature |
-                           KeyUsage.keyEncipherment |
-                           KeyUsage.dataEncipherment)
+                        KeyUsage.keyEncipherment |
+                        KeyUsage.dataEncipherment)
         );
 
         // Extended Key Usage - client and server authentication
@@ -396,8 +494,8 @@ public class CertificateServiceImpl implements CertificateService {
                 Extension.extendedKeyUsage,
                 false, // not critical
                 new ExtendedKeyUsage(new KeyPurposeId[]{
-                    KeyPurposeId.id_kp_clientAuth,
-                    KeyPurposeId.id_kp_serverAuth
+                        KeyPurposeId.id_kp_clientAuth,
+                        KeyPurposeId.id_kp_serverAuth
                 })
         );
     }
@@ -406,20 +504,15 @@ public class CertificateServiceImpl implements CertificateService {
 
     private PrivateKey getIssuerPrivateKey(Certificate issuerCert) {
         try {
-            // Check if master key is available
             if (!masterKeyService.isMasterKeyAvailable()) {
                 throw new IllegalStateException("Master key is not available for private key decryption");
             }
 
-            // Check if private key exists for the issuer certificate
             if (!privateKeyService.hasPrivateKey(issuerCert)) {
                 throw new IllegalStateException("No private key found for issuer certificate: " + issuerCert.getId());
             }
 
-            // Get current master key
             SecretKey masterKey = masterKeyService.getCurrentMasterKey();
-
-            // Retrieve and decrypt private key
             return privateKeyService.retrievePrivateKey(issuerCert, masterKey);
 
         } catch (Exception e) {
@@ -428,7 +521,6 @@ public class CertificateServiceImpl implements CertificateService {
     }
 
     private String extractOrganizationFromSubject(String subject) {
-        // Simple extraction of organization from subject DN
         if (subject.contains("O=")) {
             String[] parts = subject.split(",");
             for (String part : parts) {
@@ -442,12 +534,63 @@ public class CertificateServiceImpl implements CertificateService {
     }
 
     @Override
+    public Certificate issueCertificateFromCSR(byte[] csrData, Certificate issuer) {
+        try {
+            String csrPEM = new String(csrData);
+            CertificateSigningRequest csr = new CertificateSigningRequest();
+            csr.setCsrContent(csrPEM);
+
+            // ✅ FIX: Определяем тип сертификата из CSR
+            PKCS10CertificationRequest pkcs10CSR = pemConverter.parseCSR(csrPEM);
+
+            // Проверяем BasicConstraints в CSR для определения типа
+            CertificateType certType = determineCertificateType(pkcs10CSR);
+
+            if (certType == CertificateType.INTERMEDIATE_CA) {
+                return issueIntermediateCertificate(csr, issuer);
+            } else {
+                return issueEndEntityCertificate(csr, issuer);
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to issue certificate from CSR", e);
+        }
+    }
+
+    // ✅ FIX: Новый метод для определения типа сертификата
+    private CertificateType determineCertificateType(PKCS10CertificationRequest csr) {
+        try {
+            org.bouncycastle.asn1.x509.Extensions extensions = csr.getRequestedExtensions();
+
+            if (extensions != null) {
+                org.bouncycastle.asn1.x509.Extension bcExt = extensions.getExtension(Extension.basicConstraints);
+
+                if (bcExt != null) {
+                    BasicConstraints bc = BasicConstraints.getInstance(bcExt.getParsedValue());
+                    if (bc.isCA()) {
+                        return CertificateType.INTERMEDIATE_CA;
+                    }
+                }
+            }
+
+            return CertificateType.END_ENTITY;
+
+        } catch (Exception e) {
+            return CertificateType.END_ENTITY; // Default to end entity
+        }
+    }
+
+    @Override
     public Certificate issueServerCertificate(String serverName, Certificate issuer) {
         try {
-            // Generate key pair for server
             KeyPair keyPair = cryptographyService.generateKeyPair(keySize);
 
-            // Create server certificate
+            // ✅ FIX: Валидация перед созданием
+            LocalDateTime notBefore = LocalDateTime.now();
+            LocalDateTime notAfter = notBefore.plusYears(endEntityValidityYears);
+
+            chainValidationService.validateIssuerBeforeSigning(issuer, notBefore, notAfter);
+
             X509Certificate serverCert = buildServerCertificate(
                     "CN=" + serverName + ", O=PKI Server, C=RS",
                     keyPair.getPublic(),
@@ -456,7 +599,6 @@ public class CertificateServiceImpl implements CertificateService {
                     endEntityValidityYears
             );
 
-            // Save certificate
             Certificate certificate = CertificateBuilder.create()
                     .fromX509Certificate(serverCert, pemConverter, keyPair.getPublic())
                     .validityPeriod(endEntityValidityYears)
@@ -466,11 +608,12 @@ public class CertificateServiceImpl implements CertificateService {
                     .issuerCertificate(issuer)
                     .build();
 
-            Certificate savedCertificate = certificateRepository.save(certificate);
+            Certificate savedCertificate = certificateRepository.saveAndFlush(certificate);
 
-            // Store private key
             SecretKey masterKey = masterKeyService.getCurrentMasterKey();
             privateKeyService.storePrivateKey(savedCertificate, keyPair.getPrivate(), masterKey);
+
+            auditLogger.log("ISSUE_SERVER_CERT id=" + savedCertificate.getId(), "system");
 
             return savedCertificate;
 
@@ -478,92 +621,6 @@ public class CertificateServiceImpl implements CertificateService {
             throw new RuntimeException("Failed to create server certificate", e);
         }
     }
-
-    @Override
-    public List<Certificate> findAll() {
-        return certificateRepository.findAll();
-    }
-
-    @Override
-    public Optional<Certificate> findById(Long id) {
-        return certificateRepository.findById(id);
-    }
-
-    @Override
-    public void delete(Long id) {
-        certificateRepository.deleteById(id);
-    }
-    @Override
-    public Certificate issueRootWithTemplate(Long templateId) {
-        CertificateTemplate template = certificateTemplateService.findById(templateId);
-        return issueRootCertificate();
-    }
-
-    @Override
-    public Certificate issueIntermediateWithTemplate(Long templateId, CertificateSigningRequest csr) {
-        CertificateTemplate template = certificateTemplateService.findById(templateId);
-        Certificate issuer = template.getCaIssuer();
-
-        if (!certificateTemplateService.validateAgainstTemplate(csr, template)) {
-            throw new IllegalArgumentException("CSR does not match template policy");
-        }
-        csr = certificateTemplateService.applyTemplate(csr, template);
-
-        return issueIntermediateCertificate(csr, issuer);
-    }
-
-    @Override
-    public Certificate issueEndEntityWithTemplate(Long templateId, CertificateSigningRequest csr) {
-        CertificateTemplate template = certificateTemplateService.findById(templateId);
-        Certificate issuer = template.getCaIssuer();
-
-        if (!certificateTemplateService.validateAgainstTemplate(csr, template)) {
-            throw new IllegalArgumentException("CSR does not match template policy");
-        }
-        csr = certificateTemplateService.applyTemplate(csr, template);
-
-        return issueEndEntityCertificate(csr, issuer);
-    }
-    @Override
-    public List<Certificate> findAllByOrganization(String organizationName) {
-        return certificateRepository.findByOrganization(organizationName);
-    }
-
-    @Override
-    public List<Certificate> findAllByOwnerId(Integer ownerId) {
-        return certificateRepository.findByOwnerId(ownerId);
-    }
-
-    @Override
-    public byte[] exportAsPkcs12(Long certId, String password) {
-        try {
-            Certificate cert = certificateRepository.findById(certId)
-                    .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
-
-            SecretKey masterKey = masterKeyService.getCurrentMasterKey();
-            PrivateKey privateKey = privateKeyService.retrievePrivateKey(cert, masterKey);
-
-            X509Certificate x509Cert = pemConverter.parseCertificate(cert.getCertificateData());
-
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(null, null);
-
-            keyStore.setKeyEntry("key", privateKey, password.toCharArray(), new java.security.cert.Certificate[]{x509Cert});
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            keyStore.store(baos, password.toCharArray());
-
-            return baos.toByteArray();
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to export PKCS12", e);
-        }
-    }
-    public Page<Certificate> search(CertificateStatus status, CertificateType type, String organization, Pageable pageable) { return certificateRepository.findAll( Specification.where(CertificateSpecification.hasStatus(status)) .and(CertificateSpecification.hasType(type)) .and(CertificateSpecification.hasOrganization(organization)), pageable ); }
-//    @Override
-//    public User findUserByEmail(String email) {
-//        return user;
-//    }
 
     private X509Certificate buildServerCertificate(
             String subjectDN,
@@ -599,26 +656,122 @@ public class CertificateServiceImpl implements CertificateService {
     }
 
     private void addServerExtensions(X509v3CertificateBuilder certBuilder) throws Exception {
-        // Basic Constraints - not a CA
         certBuilder.addExtension(
                 Extension.basicConstraints,
                 true,
                 new BasicConstraints(false)
         );
 
-        // Key Usage for server authentication
         certBuilder.addExtension(
                 Extension.keyUsage,
                 true,
                 new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment)
         );
 
-        // Extended Key Usage for server authentication
         certBuilder.addExtension(
                 Extension.extendedKeyUsage,
                 false,
                 new ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth)
         );
+    }
 
+    // === Остальные методы без изменений ===
+
+    @Override
+    public List<Certificate> findAll() {
+        return certificateRepository.findAll();
+    }
+
+    @Override
+    public Optional<Certificate> findById(Long id) {
+        return certificateRepository.findById(id);
+    }
+
+    @Override
+    public void delete(Long id) {
+        auditLogger.log("DELETE_CERTIFICATE id=" + id, "system");
+        certificateRepository.deleteById(id);
+    }
+
+    @Override
+    public Certificate issueRootWithTemplate(Long templateId) {
+        CertificateTemplate template = certificateTemplateService.findById(templateId);
+        return issueRootCertificate();
+    }
+
+    @Override
+    public Certificate issueIntermediateWithTemplate(Long templateId, CertificateSigningRequest csr) {
+        CertificateTemplate template = certificateTemplateService.findById(templateId);
+        Certificate issuer = template.getCaIssuer();
+
+        if (!certificateTemplateService.validateAgainstTemplate(csr, template)) {
+            throw new IllegalArgumentException("CSR does not match template policy");
+        }
+        csr = certificateTemplateService.applyTemplate(csr, template);
+
+        return issueIntermediateCertificate(csr, issuer);
+    }
+
+    @Override
+    public Certificate issueEndEntityWithTemplate(Long templateId, CertificateSigningRequest csr) {
+        CertificateTemplate template = certificateTemplateService.findById(templateId);
+        Certificate issuer = template.getCaIssuer();
+
+        if (!certificateTemplateService.validateAgainstTemplate(csr, template)) {
+            throw new IllegalArgumentException("CSR does not match template policy");
+        }
+        csr = certificateTemplateService.applyTemplate(csr, template);
+
+        return issueEndEntityCertificate(csr, issuer);
+    }
+
+    @Override
+    public List<Certificate> findAllByOrganization(String organizationName) {
+        return certificateRepository.findByOrganization(organizationName);
+    }
+
+    @Override
+    public List<Certificate> findAllByOwnerId(Integer ownerId) {
+        return certificateRepository.findByOwnerId(ownerId);
+    }
+
+    @Override
+    public byte[] exportAsPkcs12(Long certId, String password) {
+        try {
+            Certificate cert = certificateRepository.findById(certId)
+                    .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+
+            SecretKey masterKey = masterKeyService.getCurrentMasterKey();
+            PrivateKey privateKey = privateKeyService.retrievePrivateKey(cert, masterKey);
+
+            X509Certificate x509Cert = pemConverter.parseCertificate(cert.getCertificateData());
+
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(null, null);
+
+            keyStore.setKeyEntry("key", privateKey, password.toCharArray(),
+                    new java.security.cert.Certificate[]{x509Cert});
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            keyStore.store(baos, password.toCharArray());
+
+            auditLogger.log("EXPORT_PKCS12 certId=" + certId, "system");
+
+            return baos.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to export PKCS12", e);
+        }
+    }
+
+    @Override
+    public Page<Certificate> search(CertificateStatus status, CertificateType type,
+                                    String organization, Pageable pageable) {
+        return certificateRepository.findAll(
+                Specification.where(CertificateSpecification.hasStatus(status))
+                        .and(CertificateSpecification.hasType(type))
+                        .and(CertificateSpecification.hasOrganization(organization)),
+                pageable
+        );
     }
 }

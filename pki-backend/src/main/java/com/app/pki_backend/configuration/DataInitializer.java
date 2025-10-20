@@ -18,11 +18,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.List;
 
 @Configuration
-@Order(1)
+@Order(0)
 public class DataInitializer {
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -42,31 +50,26 @@ public class DataInitializer {
     @Bean
     CommandLineRunner init(UserRepository userRepository) {
         return args -> {
-            System.out.println(" --- PKI System Initialization started... --- ");
+            System.out.println("===========================================");
+            System.out.println("PKI System Initialization");
+            System.out.println("===========================================");
 
-            initializeMasterKey();
+            // Проверим что мастер-ключ доступен
+            if (!masterKeyService.isMasterKeyAvailable()) {
+                throw new IllegalStateException("Master key is not available!");
+            }
+
+            System.out.println("✅ Master key is ready");
 
             initializeUsers(userRepository);
 
             initializeRootCertificates();
 
-            System.out.println("✅ PKI System Initialization completed successfully!");
+            System.out.println("===========================================");
+            System.out.println("✅ PKI System Initialization completed!");
             System.out.println("🌐 HTTP available on: http://localhost:8080");
+            System.out.println("===========================================");
         };
-    }
-
-    private void initializeMasterKey() {
-        try {
-            if (!masterKeyService.isMasterKeyAvailable()) {
-                masterKeyService.generateMasterKey();
-                System.out.println("✅ Master key generated");
-            } else {
-                System.out.println("ℹ️ Master key already exists");
-            }
-        } catch (Exception e) {
-            System.err.println("❌ Failed to initialize master key: " + e.getMessage());
-            throw new RuntimeException("Master key initialization failed", e);
-        }
     }
 
     private void initializeUsers(UserRepository userRepository) {
@@ -120,26 +123,24 @@ public class DataInitializer {
 
     private void initializeRootCertificates() {
         try {
-            // Check if root certificates already exist
             List<Certificate> existingRootCerts = certificateRepository.findByType(CertificateType.ROOT_CA);
 
             if (!existingRootCerts.isEmpty()) {
                 System.out.println("ℹ️ Found existing Root CA certificates, checking if usable...");
 
-                // Try to find a usable Root CA
                 Certificate usableRootCA = findUsableRootCA(existingRootCerts);
 
                 if (usableRootCA != null) {
                     System.out.println("✅ Found usable Root CA: " + usableRootCA.getSubject());
                     System.out.println("   Serial: " + usableRootCA.getSerialNumber().toString(16));
-                    return; // We have a working Root CA, no need to create new one
-                } else {
-                    System.out.println("⚠️ No usable Root CA found, cleaning up old certificates...");
-                    cleanupUnusableRootCertificates(existingRootCerts);
+                    return;
                 }
+
+                System.out.println("⚠️ No usable Root CA found, cleaning up old certificates...");
+                cleanupUnusableRootCertificates(existingRootCerts);
             }
 
-            System.out.println("🔐 Generating new root certificate using CertificateService...");
+            System.out.println("🔐 Generating new root certificate...");
             Certificate rootCertificate = certificateService.issueRootCertificate();
 
             System.out.println("✅ Root certificate generated successfully!");
@@ -148,12 +149,11 @@ public class DataInitializer {
             System.out.println("   Serial: " + rootCertificate.getSerialNumber().toString(16));
             System.out.println("   Valid from: " + rootCertificate.getValidFrom());
             System.out.println("   Valid to: " + rootCertificate.getValidTo());
-            System.out.println("   Status: " + rootCertificate.getStatus());
 
         } catch (Exception e) {
-            System.err.println("❌ Failed to initialize root certificate: " + e.getMessage());
+            System.err.println("❌ CRITICAL: Failed to initialize root certificate: " + e.getMessage());
             e.printStackTrace();
-            // Don't throw exception to allow application to start even if cert generation fails
+            throw new RuntimeException("Cannot initialize PKI system without Root CA", e);
         }
     }
 
