@@ -116,9 +116,9 @@ const CertificateForm: React.FC<CertificateFormProps> = ({ onSubmit, onCancel })
               cursor: 'pointer'
             }}
           >
-            <option value="ROOT_CA">Корневой ЦА</option>
-            <option value="INTERMEDIATE_CA">Промежуточный ЦА</option>
-            <option value="END_ENTITY">Конечный сертификат</option>
+            <option value="ROOT_CA">Root CA</option>
+            <option value="INTERMEDIATE_CA">Intermediate CA</option>
+            <option value="END_ENTITY">End-entity</option>
           </select>
         </div>
 
