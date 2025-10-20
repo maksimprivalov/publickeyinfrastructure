@@ -1,12 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import certificatesApi from '../api/certificates/certificatesApi';
-import type { Certificate } from '../models/certificate';
-
-interface SearchFilters {
-  status?: 'VALID' | 'EXPIRED' | 'REVOKED';
-  type?: 'ROOT' | 'INTERMEDIATE' | 'END_ENTITY';
-  organization?: string;
-}
+import type { Certificate, CertificateStatus, CertificateType } from '../models/certificate';
+import CertificateTable from '../components/CertificateTable';
 
 interface SearchResults {
   content: Certificate[];
@@ -17,7 +12,9 @@ interface SearchResults {
 }
 
 const CertificateSearch: React.FC = () => {
-  const [filters, setFilters] = useState<SearchFilters>({});
+  const [status, setStatus] = useState<CertificateStatus | ''>('');
+  const [type, setType] = useState<CertificateType | ''>('');
+  const [organization, setOrganization] = useState<string>('');
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,11 +26,13 @@ const CertificateSearch: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const searchResults = await certificatesApi.searchCertificates({
-        ...filters,
+      const searchResults = await certificatesApi.searchCertificates(
+        status ? status as CertificateStatus : undefined,
+        type ? type as CertificateType : undefined,
+        organization || undefined,
         page,
-        size: pageSize
-      });
+        pageSize
+      );
       
       setResults(searchResults);
       setCurrentPage(page);
@@ -45,215 +44,73 @@ const CertificateSearch: React.FC = () => {
     }
   };
 
-  const handleFilterChange = (key: keyof SearchFilters, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value || undefined
-    }));
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setResults(null);
+  const handleReset = () => {
+    setStatus('');
+    setType('');
+    setOrganization('');
     setCurrentPage(0);
+    setResults(null);
   };
 
-  const downloadCertificate = async (id: number) => {
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    handleSearch(page);
+  };
+
+  const handleDownload = async (certificate: Certificate) => {
     try {
-      const blob = await certificatesApi.downloadCertificate(id);
+      const blob = await certificatesApi.downloadCertificate(certificate.id);
+      
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `certificate_${id}.p12`;
+      link.download = `certificate_${certificate.serialNumber}.p12`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Download error:', err);
+      setError(`Error downloading certificate: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'VALID': return '#10b981';
-      case 'EXPIRED': return '#f59e0b';
-      case 'REVOKED': return '#ef4444';
-      default: return '#6b7280';
+  const renderPagination = () => {
+    if (!results) return null;
+    
+    const totalPages = results.totalPages;
+    const pages = [];
+    
+    for (let i = 0; i < totalPages; i++) {
+      pages.push(
+        <button 
+          key={i}
+          onClick={() => handlePageChange(i)}
+          style={{
+            padding: '8px 12px',
+            margin: '0 4px',
+            backgroundColor: i === currentPage ? '#3b82f6' : '#f3f4f6',
+            color: i === currentPage ? 'white' : '#374151',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          {i + 1}
+        </button>
+      );
     }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'ROOT': return '#8b5cf6';
-      case 'INTERMEDIATE': return '#3b82f6';
-      case 'END_ENTITY': return '#06b6d4';
-      default: return '#6b7280';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+        {pages}
+      </div>
+    );
   };
 
   return (
-    <div>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: 24 
-      }}>
-        <h2 style={{ margin: 0, color: '#1f2937' }}>Certificate Search</h2>
-      </div>
-
-      {/* Search Filters */}
-      <div style={{
-        backgroundColor: 'white',
-        padding: 24,
-        borderRadius: 8,
-        boxShadow: '0 2px 8px #e0e7ff',
-        marginBottom: 24
-      }}>
-        <h3 style={{ margin: 0, marginBottom: 16, color: '#374151' }}>Search Filters</h3>
-        
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 16,
-          marginBottom: 16
-        }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 500, color: '#374151' }}>
-              Status
-            </label>
-            <select
-              value={filters.status || ''}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: 6,
-                fontSize: 14,
-                backgroundColor: 'white'
-              }}
-            >
-              <option value="">All Statuses</option>
-              <option value="VALID">Valid</option>
-              <option value="EXPIRED">Expired</option>
-              <option value="REVOKED">Revoked</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 500, color: '#374151' }}>
-              Type
-            </label>
-            <select
-              value={filters.type || ''}
-              onChange={(e) => handleFilterChange('type', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: 6,
-                fontSize: 14,
-                backgroundColor: 'white'
-              }}
-            >
-              <option value="">All Types</option>
-              <option value="ROOT">Root</option>
-              <option value="INTERMEDIATE">Intermediate</option>
-              <option value="END_ENTITY">End Entity</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 500, color: '#374151' }}>
-              Organization
-            </label>
-            <input
-              type="text"
-              value={filters.organization || ''}
-              onChange={(e) => handleFilterChange('organization', e.target.value)}
-              placeholder="Enter organization name"
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: 6,
-                fontSize: 14
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 500, color: '#374151' }}>
-              Page Size
-            </label>
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: 6,
-                fontSize: 14,
-                backgroundColor: 'white'
-              }}
-            >
-              <option value={5}>5 per page</option>
-              <option value={10}>10 per page</option>
-              <option value={25}>25 per page</option>
-              <option value={50}>50 per page</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => handleSearch(0)}
-            disabled={loading}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#2563eb',
-              color: 'white',
-              border: 'none',
-              borderRadius: 6,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: 14,
-              fontWeight: 500,
-              opacity: loading ? 0.6 : 1
-            }}
-          >
-            {loading ? 'Searching...' : 'Search'}
-          </button>
-          
-          <button
-            onClick={clearFilters}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#6b7280',
-              color: 'white',
-              border: 'none',
-              borderRadius: 6,
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 500
-            }}
-          >
-            Clear Filters
-          </button>
-        </div>
-      </div>
-
-      {/* Error Display */}
+    <div style={{ padding: 32 }}>
+      <h1 style={{ marginBottom: 24 }}>Certificate Search</h1>
+      
       {error && (
         <div style={{
           backgroundColor: '#fee2e2',
@@ -266,168 +123,167 @@ const CertificateSearch: React.FC = () => {
           {error}
         </div>
       )}
-
+      
+      <div style={{
+        backgroundColor: 'white',
+        padding: 24,
+        borderRadius: 8,
+        boxShadow: '0 2px 8px #e0e7ff',
+        marginBottom: 24
+      }}>
+        <h3 style={{ marginTop: 0, marginBottom: 16 }}>Search Filters</h3>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
+          {/* Status filter */}
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
+              Certificate Status
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as CertificateStatus | '')}
+              style={{
+                width: '100%',
+                padding: 10,
+                border: '1px solid #d1d5db',
+                borderRadius: 4
+              }}
+            >
+              <option value="">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="REVOKED">Revoked</option>
+              <option value="EXPIRED">Expired</option>
+            </select>
+          </div>
+          
+          {/* Type filter */}
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
+              Certificate Type
+            </label>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as CertificateType | '')}
+              style={{
+                width: '100%',
+                padding: 10,
+                border: '1px solid #d1d5db',
+                borderRadius: 4
+              }}
+            >
+              <option value="">All Types</option>
+              <option value="ROOT_CA">Root CA</option>
+              <option value="INTERMEDIATE_CA">Intermediate CA</option>
+              <option value="END_ENTITY">End Entity</option>
+            </select>
+          </div>
+          
+          {/* Organization filter */}
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
+              Organization
+            </label>
+            <input
+              type="text"
+              value={organization}
+              onChange={(e) => setOrganization(e.target.value)}
+              placeholder="Enter organization name"
+              style={{
+                width: '100%',
+                padding: 10,
+                border: '1px solid #d1d5db',
+                borderRadius: 4
+              }}
+            />
+          </div>
+          
+          {/* Page size */}
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
+              Results per page
+            </label>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              style={{
+                width: '100%',
+                padding: 10,
+                border: '1px solid #d1d5db',
+                borderRadius: 4
+              }}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+        </div>
+        
+        <div style={{ marginTop: 24, display: 'flex', gap: 16 }}>
+          <button
+            onClick={() => handleSearch()}
+            disabled={loading}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: 6,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            {loading ? 'Searching...' : 'Search Certificates'}
+          </button>
+          
+          <button
+            onClick={handleReset}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#f3f4f6',
+              color: '#374151',
+              border: '1px solid #d1d5db',
+              borderRadius: 6,
+              cursor: 'pointer'
+            }}
+          >
+            Clear Filters
+          </button>
+        </div>
+      </div>
+      
       {/* Results */}
       {results && (
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: 8,
-          boxShadow: '0 2px 8px #e0e7ff',
-          overflow: 'hidden'
-        }}>
-          {/* Results Info */}
-          <div style={{
-            padding: 16,
-            borderBottom: '1px solid #e5e7eb',
-            backgroundColor: '#f9fafb'
+        <div>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: 16 
           }}>
-            <p style={{ margin: 0, fontSize: 14, color: '#6b7280' }}>
-              Found {results.totalElements} certificates • Page {results.number + 1} of {results.totalPages}
-            </p>
+            <h3 style={{ margin: 0 }}>Search Results</h3>
+            <p>Showing {results.content.length} of {results.totalElements} certificates</p>
           </div>
-
-          {/* Results Table */}
+          
           {results.content.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: 40,
+            <div style={{
+              textAlign: 'center',
+              padding: 32,
+              backgroundColor: '#f9fafb',
+              borderRadius: 8,
               color: '#6b7280'
             }}>
-              <p>No certificates found matching your criteria</p>
+              <p>No certificates found matching your search criteria</p>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ backgroundColor: '#f1f5f9' }}>
-                  <tr>
-                    <th style={{ padding: 16, textAlign: 'left', fontWeight: 600, color: '#374151' }}>Serial Number</th>
-                    <th style={{ padding: 16, textAlign: 'left', fontWeight: 600, color: '#374151' }}>Subject</th>
-                    <th style={{ padding: 16, textAlign: 'left', fontWeight: 600, color: '#374151' }}>Type</th>
-                    <th style={{ padding: 16, textAlign: 'left', fontWeight: 600, color: '#374151' }}>Status</th>
-                    <th style={{ padding: 16, textAlign: 'left', fontWeight: 600, color: '#374151' }}>Valid Until</th>
-                    <th style={{ padding: 16, textAlign: 'left', fontWeight: 600, color: '#374151' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.content.map((cert) => (
-                    <tr key={cert.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                      <td style={{ padding: 16, fontFamily: 'monospace', fontSize: 12 }}>
-                        {cert.serialNumber}
-                      </td>
-                      <td style={{ padding: 16, color: '#1f2937' }}>
-                        <div style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {cert.subject}
-                        </div>
-                      </td>
-                      <td style={{ padding: 16 }}>
-                        <span style={{
-                          padding: '4px 8px',
-                          borderRadius: 4,
-                          fontSize: 12,
-                          fontWeight: 'bold',
-                          backgroundColor: getTypeColor(cert.type) + '20',
-                          color: getTypeColor(cert.type)
-                        }}>
-                          {cert.type}
-                        </span>
-                      </td>
-                      <td style={{ padding: 16 }}>
-                        <span style={{
-                          padding: '4px 8px',
-                          borderRadius: 4,
-                          fontSize: 12,
-                          fontWeight: 'bold',
-                          backgroundColor: getStatusColor(cert.status) + '20',
-                          color: getStatusColor(cert.status)
-                        }}>
-                          {cert.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: 16, color: '#6b7280', fontSize: 14 }}>
-                        {formatDate(cert.validTo)}
-                      </td>
-                      <td style={{ padding: 16 }}>
-                        <button
-                          onClick={() => downloadCertificate(cert.id)}
-                          style={{
-                            padding: '6px 12px',
-                            fontSize: 12,
-                            backgroundColor: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: 4,
-                            cursor: 'pointer',
-                            fontWeight: 500
-                          }}
-                        >
-                          Download
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {results.totalPages > 1 && (
-            <div style={{
-              padding: 16,
-              borderTop: '1px solid #e5e7eb',
-              backgroundColor: '#f9fafb',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div style={{ fontSize: 14, color: '#6b7280' }}>
-                Showing {results.number * results.size + 1} to {Math.min((results.number + 1) * results.size, results.totalElements)} of {results.totalElements} results
-              </div>
-              
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button
-                  onClick={() => handleSearch(currentPage - 1)}
-                  disabled={currentPage === 0 || loading}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: 12,
-                    backgroundColor: currentPage === 0 ? '#e5e7eb' : '#374151',
-                    color: currentPage === 0 ? '#9ca3af' : 'white',
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: currentPage === 0 ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  Previous
-                </button>
-                
-                <span style={{
-                  padding: '6px 12px',
-                  fontSize: 12,
-                  color: '#374151',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}>
-                  Page {currentPage + 1} of {results.totalPages}
-                </span>
-                
-                <button
-                  onClick={() => handleSearch(currentPage + 1)}
-                  disabled={currentPage >= results.totalPages - 1 || loading}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: 12,
-                    backgroundColor: currentPage >= results.totalPages - 1 ? '#e5e7eb' : '#374151',
-                    color: currentPage >= results.totalPages - 1 ? '#9ca3af' : 'white',
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: currentPage >= results.totalPages - 1 ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+            <>
+              <CertificateTable 
+                certificates={results.content} 
+                onDownload={handleDownload}
+              />
+              {renderPagination()}
+            </>
           )}
         </div>
       )}

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Certificate } from '../models/certificate';
 import certificatesApi from '../api/certificates/certificatesApi';
-import revocationApi from '../api/certificates/revocationApi';
 
 const CertificateDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,25 +32,6 @@ const CertificateDetails: React.FC = () => {
     }
   };
 
-  const handleDownload = async () => {
-    if (!certificate) return;
-
-    try {
-      const blob = await certificatesApi.downloadCertificate(certificate.id);
-      
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `certificate_${certificate.serialNumber}.p12`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      setError('Error downloading');
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ru-RU', {
       year: 'numeric',
@@ -79,9 +59,10 @@ const CertificateDetails: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 32 }}>      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
+    <div style={{ padding: 32 }}>      
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
         <h1>Certificate Details</h1>
-        <button onClick={() => navigate(-1)}>Back</button>
+        <button style={{ backgroundColor: '#3b82f6', color: 'white' }} onClick={() => navigate(-1)}>Back</button>
       </div>
 
       {error && (
@@ -117,22 +98,6 @@ const CertificateDetails: React.FC = () => {
             <p><strong>To:</strong> {formatDate(certificate.validTo)}</p>
             <p><strong>Created:</strong> {formatDate(certificate.createdAt)}</p>
           </div>
-        </div>
-
-        <div style={{ marginTop: 20 }}>
-          <button
-            onClick={handleDownload}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            Download Certificate
-          </button>
         </div>
       </div>
     </div>
