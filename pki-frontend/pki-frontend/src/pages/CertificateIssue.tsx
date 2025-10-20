@@ -47,16 +47,16 @@ const CertificateIssue: React.FC = () => {
       setSuccess(null);
       
       if (certificateType === 'intermediate') {
-        await certificatesApi.issueIntermediateCertificate(selectedCAId, {
+        await certificatesApi.issueIntermediateCertificate({
           csrContent: csrContent.trim()
         });
         setSuccess('Промежуточный сертификат успешно выпущен!');
         loadCAs(); // Обновляем список ЦА так как добавился новый intermediate CA
       } else {
-          await certificatesApi.issueEndEntityCertificate({
-            csrContent: csrContent.trim(),
-          });
-          setSuccess('Конечный сертификат успешно выпущен!');
+        await certificatesApi.issueEndEntityCertificate({
+          csrContent: csrContent.trim(),
+        });
+        setSuccess('Конечный сертификат успешно выпущен!');
       }
       
       setCsrContent('');
