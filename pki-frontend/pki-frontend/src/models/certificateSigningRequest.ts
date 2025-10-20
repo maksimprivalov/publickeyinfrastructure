@@ -19,4 +19,5 @@ export interface CertificateSigningRequest {
 // DTO для создания нового CSR
 export interface CreateCSRRequest {
   csrContent: string;
+  selectedCAId: number; // <- получить по get запросу айдишникик сертификата текущего юзера
 }
