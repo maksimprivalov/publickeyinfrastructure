@@ -155,25 +155,25 @@ public class DataInitializer {
             e.printStackTrace();
             throw new RuntimeException("Cannot initialize PKI system without Root CA", e);
         }
-        // === HTTPS initialization ===
-        try {
-            String serverName = "pki.local";     // имя домена
-            Long issuerId = 1L;                  // ID Root CA в БД (замени на актуальный)
-            String ksPassword = "changeit";      // пароль keystore
-
-            Path ksPath = certificateService.generateHttpsKeystore(serverName, issuerId, ksPassword);
-
-            System.setProperty("server.ssl.enabled", "true");
-            System.setProperty("server.ssl.key-store", ksPath.toAbsolutePath().toString());
-            System.setProperty("server.ssl.key-store-password", ksPassword);
-            System.setProperty("server.ssl.key-store-type", "PKCS12");
-            System.setProperty("server.ssl.key-alias", "pki-server");
-            System.setProperty("server.port", "8443");
-
-            System.out.println("✅ HTTPS enabled at https://" + serverName + ":8443");
-        } catch (Exception e) {
-            System.err.println("⚠️ Failed to initialize HTTPS: " + e.getMessage());
-        }
+//        // === HTTPS initialization ===
+//        try {
+//            String serverName = "pki.local";     // имя домена
+//            Long issuerId = 1L;                  // ID Root CA в БД (замени на актуальный)
+//            String ksPassword = "changeit";      // пароль keystore
+//
+//            Path ksPath = certificateService.generateHttpsKeystore(serverName, issuerId, ksPassword);
+//
+//            System.setProperty("server.ssl.enabled", "true");
+//            System.setProperty("server.ssl.key-store", ksPath.toAbsolutePath().toString());
+//            System.setProperty("server.ssl.key-store-password", ksPassword);
+//            System.setProperty("server.ssl.key-store-type", "PKCS12");
+//            System.setProperty("server.ssl.key-alias", "pki-server");
+//            System.setProperty("server.port", "8443");
+//
+//            System.out.println("✅ HTTPS enabled at https://" + serverName + ":8443");
+//        } catch (Exception e) {
+//            System.err.println("⚠️ Failed to initialize HTTPS: " + e.getMessage());
+//        }
     }
 
     private Certificate findUsableRootCA(List<Certificate> rootCAs) {
