@@ -27,7 +27,7 @@ const CertificateUpload: React.FC = () => {
         setSelectedCAId(activeCAs[0].id);
       }
     } catch (err) {
-      setError('Ошибка при загрузке списка центров сертификации');
+      setError('Error loading certificate authority list');
       console.error('Error loading CAs:', err);
     }
   };
@@ -37,7 +37,7 @@ const CertificateUpload: React.FC = () => {
     if (file) {
       // Проверяем тип файла
       if (!file.name.toLowerCase().endsWith('.csr') && !file.name.toLowerCase().endsWith('.pem')) {
-        setError('Пожалуйста, выберите файл с расширением .csr или .pem');
+        setError('Please select a file with .csr or .pem extension');
         return;
       }
       setSelectedFile(file);
@@ -49,12 +49,12 @@ const CertificateUpload: React.FC = () => {
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setError('Пожалуйста, выберите файл CSR для загрузки');
+      setError('Please select a CSR file to upload');
       return;
     }
 
     if (!selectedCAId) {
-      setError('Пожалуйста, выберите центр сертификации');
+      setError('Please select a certificate authority');
       return;
     }
 
@@ -65,7 +65,7 @@ const CertificateUpload: React.FC = () => {
 
       const certificate = await certificatesApi.uploadCSR(selectedCAId, selectedFile);
       
-      setSuccess('CSR успешно обработан и сертификат выпущен!');
+      setSuccess('CSR successfully processed and certificate issued!');
       setIssuedCertificate(certificate);
       setSelectedFile(null);
       
@@ -75,7 +75,7 @@ const CertificateUpload: React.FC = () => {
         fileInput.value = '';
       }
     } catch (err) {
-      setError(`Ошибка при загрузке CSR: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+      setError(`Error uploading CSR: ${err instanceof Error ? err.message : 'Unknown error'}`);
       console.error('Error uploading CSR:', err);
     } finally {
       setUploading(false);
@@ -98,7 +98,7 @@ const CertificateUpload: React.FC = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      setError(`Ошибка при скачивании сертификата: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+      setError(`Error downloading certificate: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -108,7 +108,7 @@ const CertificateUpload: React.FC = () => {
 
   return (
     <div style={{ padding: 32 }}>
-      <h1 style={{ marginBottom: 24 }}>Загрузка запроса на подпись сертификата (CSR)</h1>
+      <h1 style={{ marginBottom: 24 }}>Certificate Signing Request (CSR) Upload</h1>
 
       {error && (
         <div style={{
@@ -143,11 +143,11 @@ const CertificateUpload: React.FC = () => {
         boxShadow: '0 2px 8px #e0e7ff',
         marginBottom: 24 
       }}>
-        <h3 style={{ marginTop: 0, marginBottom: 16 }}>Выберите файл CSR и центр сертификации</h3>
+        <h3 style={{ marginTop: 0, marginBottom: 16 }}>Select CSR file and certificate authority</h3>
 
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
-            Центр сертификации
+            Certificate Authority
           </label>
           {availableCAs.length === 0 ? (
             <div style={{ 
@@ -157,7 +157,7 @@ const CertificateUpload: React.FC = () => {
               borderRadius: 4,
               border: '1px solid #f59e0b'
             }}>
-              Активные центры сертификации не найдены. Создайте ЦА перед загрузкой CSR.
+              No active certificate authorities found. Create a CA before uploading a CSR.
             </div>
           ) : (
             <select
@@ -203,7 +203,7 @@ const CertificateUpload: React.FC = () => {
               borderRadius: 4,
               fontSize: 14 
             }}>
-              <strong>Выбранный файл:</strong> {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
+              <strong>Selected file:</strong> {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
             </div>
           )}
         </div>
@@ -222,7 +222,7 @@ const CertificateUpload: React.FC = () => {
             fontWeight: 'bold'
           }}
         >
-          {uploading ? 'Загружается...' : 'Загрузить CSR'}
+          {uploading ? 'Uploading...' : 'Upload CSR'}
         </button>
       </div>
 
@@ -235,7 +235,7 @@ const CertificateUpload: React.FC = () => {
           boxShadow: '0 2px 8px #e0e7ff'
         }}>
           <h3 style={{ marginTop: 0, marginBottom: 16, color: '#059669' }}>
-            ✅ Сертификат успешно выпущен
+            ✅ Certificate successfully issued
           </h3>
           
           <div style={{ 
@@ -245,12 +245,12 @@ const CertificateUpload: React.FC = () => {
             marginBottom: 20 
           }}>
             <div>
-              <strong>Серийный номер:</strong><br />
+              <strong>Serial number:</strong><br />
               <span style={{ fontFamily: 'monospace' }}>{issuedCertificate.serialNumber}</span>
             </div>
             <div>
               <strong>Тип:</strong><br />
-              {issuedCertificate.type === 'END_ENTITY' ? 'Конечный сертификат' : issuedCertificate.type}
+              {issuedCertificate.type === 'END_ENTITY' ? 'End Entity Certificate' : issuedCertificate.type}
             </div>
             <div>
               <strong>Субъект:</strong><br />
@@ -266,15 +266,15 @@ const CertificateUpload: React.FC = () => {
                 backgroundColor: '#dcfce7',
                 color: '#166534'
               }}>
-                Активен
+                Active
               </span>
             </div>
             <div>
-              <strong>Действителен с:</strong><br />
+              <strong>Valid from:</strong><br />
               {formatDate(issuedCertificate.validFrom)}
             </div>
             <div>
-              <strong>Действителен до:</strong><br />
+              <strong>Valid until:</strong><br />
               {formatDate(issuedCertificate.validTo)}
             </div>
           </div>
@@ -290,7 +290,7 @@ const CertificateUpload: React.FC = () => {
               cursor: 'pointer'
             }}
           >
-            📥 Скачать сертификат (PKCS#12)
+            📥 Download Certificate (PKCS#12)
           </button>
         </div>
       )}
@@ -302,13 +302,13 @@ const CertificateUpload: React.FC = () => {
         borderRadius: 8,
         marginTop: 24
       }}>
-        <h4 style={{ marginTop: 0 }}>📋 Инструкции:</h4>
+        <h4 style={{ marginTop: 0 }}>📋 Instructions:</h4>
         <ul style={{ paddingLeft: 20, color: '#6b7280' }}>
-          <li>Выберите активный центр сертификации из списка</li>
-          <li>Загрузите файл CSR в формате .csr или .pem</li>
-          <li>Нажмите "Загрузить CSR" для обработки запроса</li>
-          <li>После успешного выпуска сертификата вы сможете его скачать</li>
-          <li>Скачанный сертификат будет в формате PKCS#12 (.p12) с паролем "changeit"</li>
+          <li>Select an active certificate authority from the list</li>
+          <li>Upload a CSR file in .csr or .pem format</li>
+          <li>Click "Upload CSR" to process the request</li>
+          <li>After successful certificate issuance, you can download it</li>
+          <li>Downloaded certificate will be in PKCS#12 (.p12) format with password "changeit"</li>
         </ul>
       </div>
     </div>

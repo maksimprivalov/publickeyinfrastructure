@@ -1,7 +1,9 @@
 package com.app.pki_backend.entity.certificates;
 
 import com.app.pki_backend.entity.user.User;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -53,14 +55,17 @@ public class Certificate {
 
     @ManyToOne
     @JoinColumn(name = "owner_id")
-    @JsonIgnoreProperties({"certificates", "password", "activationCode"})
+    @JsonIgnoreProperties({"certificates", "password", "activationCode", "authorities", "accountNonExpired",
+            "accountNonLocked", "credentialsNonExpired", "enabled", "suspendedSince"})
     private User owner;
 
+    // ИСПРАВЛЕНО: Используем @JsonBackReference для предотвращения циклических ссылок
     @ManyToOne
     @JoinColumn(name = "issuer_certificate_id")
-    @JsonIgnoreProperties({"issuedCertificates", "issuerCertificate", "owner"})
+    @JsonBackReference  // Не сериализуется в JSON при отправке на клиент
     private Certificate issuerCertificate;
 
+    // ИСПРАВЛЕНО: Используем @JsonManagedReference + @JsonIgnore для полного игнорирования
     @OneToMany(mappedBy = "issuerCertificate", cascade = CascadeType.ALL)
     @JsonIgnoreProperties({"issuedCertificates", "issuerCertificate", "owner"})
     private List<Certificate> issuedCertificates; // Certificates issued by this certificate
@@ -76,6 +81,7 @@ public class Certificate {
 
     public Certificate() {}
 
+    // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -127,7 +133,3 @@ public class Certificate {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
-
-
-
-

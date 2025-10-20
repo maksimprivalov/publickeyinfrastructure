@@ -27,7 +27,7 @@ const CertificateDetails: React.FC = () => {
       const cert = await certificatesApi.getCertificateById(certId);
       setCertificate(cert);
     } catch (err) {
-      setError('Ошибка при загрузке сертификата');
+      setError('Error loading certificate');
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,7 @@ const CertificateDetails: React.FC = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      setError('Ошибка при скачивании');
+      setError('Error downloading');
     }
   };
 
@@ -63,28 +63,25 @@ const CertificateDetails: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div style={{ padding: 32, textAlign: 'center' }}>
-        <h1>Детали сертификата</h1>
-        <div>Загрузка...</div>
+    return (      <div style={{ padding: 32, textAlign: 'center' }}>
+        <h1>Certificate Details</h1>
+        <div>Loading...</div>
       </div>
     );
   }
 
   if (!certificate) {
-    return (
-      <div style={{ padding: 32 }}>
-        <h1>Сертификат не найден</h1>
-        <button onClick={() => navigate(-1)}>Назад</button>
+    return (      <div style={{ padding: 32 }}>
+        <h1>Certificate not found</h1>
+        <button onClick={() => navigate(-1)}>Back</button>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 32 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h1>Детали сертификата</h1>
-        <button onClick={() => navigate(-1)}>Назад</button>
+    <div style={{ padding: 32 }}>      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
+        <h1>Certificate Details</h1>
+        <button onClick={() => navigate(-1)}>Back</button>
       </div>
 
       {error && (
@@ -102,26 +99,23 @@ const CertificateDetails: React.FC = () => {
       <div style={{ backgroundColor: 'white', padding: 24, borderRadius: 8 }}>
         <div style={{ marginBottom: 20 }}>
           <h2>{certificate.subject}</h2>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <span>Статус: {certificate.status}</span>
-            <span>Тип: {certificate.type}</span>
+          <div style={{ display: 'flex', gap: 16 }}>            <span>Status: {certificate.status}</span>
+            <span>Type: {certificate.type}</span>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           <div>
-            <h3>Основная информация</h3>
-            <p><strong>S/N:</strong> {certificate.serialNumber}</p>
-            <p><strong>Субъект:</strong> {certificate.subject}</p>
-            <p><strong>Издатель:</strong> {certificate.issuer}</p>
-            <p><strong>Организация:</strong> {certificate.organization}</p>
+            <h3>Basic Information</h3>
+            <p><strong>S/N:</strong> {certificate.serialNumber}</p>            <p><strong>Subject:</strong> {certificate.subject}</p>
+            <p><strong>Issuer:</strong> {certificate.issuer}</p>
+            <p><strong>Organization:</strong> {certificate.organization}</p>
           </div>
 
-          <div>
-            <h3>Период действия</h3>
-            <p><strong>С:</strong> {formatDate(certificate.validFrom)}</p>
-            <p><strong>До:</strong> {formatDate(certificate.validTo)}</p>
-            <p><strong>Создан:</strong> {formatDate(certificate.createdAt)}</p>
+          <div>            <h3>Validity Period</h3>
+            <p><strong>From:</strong> {formatDate(certificate.validFrom)}</p>
+            <p><strong>To:</strong> {formatDate(certificate.validTo)}</p>
+            <p><strong>Created:</strong> {formatDate(certificate.createdAt)}</p>
           </div>
         </div>
 
@@ -137,7 +131,7 @@ const CertificateDetails: React.FC = () => {
               cursor: 'pointer'
             }}
           >
-            Скачать сертификат
+            Download Certificate
           </button>
         </div>
       </div>

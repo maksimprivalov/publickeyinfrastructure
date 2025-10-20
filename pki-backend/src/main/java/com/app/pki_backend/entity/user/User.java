@@ -1,6 +1,9 @@
 package com.app.pki_backend.entity.user;
 
 
+import com.app.pki_backend.entity.certificates.Certificate;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -36,6 +39,10 @@ public class User implements UserDetails {
     @Column(name = "role", insertable = false, updatable = false)
     private String role; // read only
     private LocalDateTime suspendedSince;
+
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties({"owner", "issuerCertificate", "issuedCertificates"})
+    private List<Certificate> certificates;
 
     public Boolean getActive() {
         return isActive;

@@ -58,35 +58,31 @@ const UserPanel: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(`Ошибка при скачивании сертификата: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+      window.URL.revokeObjectURL(url);    } catch (err) {
+      setError(`Error downloading certificate: ${err instanceof Error ? err.message : 'Unknown error'}`);
       console.error('Error downloading certificate:', err);
     }
   };
 
 const handleRevoke = async (cert: Certificate) => {
   let reason: string | null = null;
-
   // Показываем пользователю список допустимых причин
   while (true) {
     reason = prompt(
-      'Укажите причину отзыва сертификата:\n' + REVOCATION_REASONS.join('\n')
+      'Specify certificate revocation reason:\n' + REVOCATION_REASONS.join('\n')
     );
     if (reason === null) return; // пользователь отменил
     reason = reason.toUpperCase().trim();
     if (REVOCATION_REASONS.includes(reason as typeof REVOCATION_REASONS[number])) break;
-    alert('Неверная причина. Выберите одну из перечисленных.');
+    alert('Invalid reason. Please select one from the list.');
   }
 
   try {
     setError(null);
-    await revocationApi.revokeCertificate(cert.id, reason);
-
-    alert('Сертификат успешно отозван');
+    await revocationApi.revokeCertificate(cert.id, reason);    alert('Certificate successfully revoked');
     await loadCertificates()
   } catch (err) {
-    setError(`Ошибка при отзыве сертификата: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+    setError(`Error revoking certificate: ${err instanceof Error ? err.message : 'Unknown error'}`);
     console.error('Error revoking certificate:', err);
   }
 };

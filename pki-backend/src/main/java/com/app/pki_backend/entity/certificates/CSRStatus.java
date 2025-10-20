@@ -1,4 +1,4 @@
-package com.app.pki_backend.dto.certificate;
+package com.app.pki_backend.entity.certificates;
 
 public enum CSRStatus {
     PENDING,

@@ -16,9 +16,9 @@ const CertificateTable: React.FC<CertificateTableProps> = ({ certificates, onDow
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'ACTIVE': return 'Активен';
-      case 'REVOKED': return 'Отозван';
-      case 'EXPIRED': return 'Истёк';
+      case 'ACTIVE': return 'Active';
+      case 'REVOKED': return 'Revoked';
+      case 'EXPIRED': return 'Expired';
       default: return status;
     }
   };
@@ -35,7 +35,7 @@ const CertificateTable: React.FC<CertificateTableProps> = ({ certificates, onDow
   if (loading) {
     return (
       <div style={{ padding: 20, textAlign: 'center' }}>
-        Загрузка сертификатов...
+        Downloading certificates...
       </div>
     );
   }
@@ -52,13 +52,13 @@ const CertificateTable: React.FC<CertificateTableProps> = ({ certificates, onDow
     <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e0e7ff' }}>
       <thead style={{ background: '#f1f5f9' }}>
         <tr>
-          <th style={{ padding: 12, textAlign: 'left' }}>Серийный номер</th>
-          <th style={{ padding: 12, textAlign: 'left' }}>Субъект</th>
-          <th style={{ padding: 12, textAlign: 'left' }}>Тип</th>
-          <th style={{ padding: 12, textAlign: 'left' }}>Действителен с</th>
-          <th style={{ padding: 12, textAlign: 'left' }}>Действителен до</th>
-          <th style={{ padding: 12, textAlign: 'left' }}>Статус</th>
-          <th style={{ padding: 12, textAlign: 'left' }}>Действия</th>
+          <th style={{ padding: 12, textAlign: 'left' }}>Serial number</th>
+          <th style={{ padding: 12, textAlign: 'left' }}>Subject</th>
+          <th style={{ padding: 12, textAlign: 'left' }}>Type</th>
+          <th style={{ padding: 12, textAlign: 'left' }}>Valid from</th>
+          <th style={{ padding: 12, textAlign: 'left' }}>Valid until</th>
+          <th style={{ padding: 12, textAlign: 'left' }}>Status</th>
+          <th style={{ padding: 12, textAlign: 'left' }}>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -95,7 +95,7 @@ const CertificateTable: React.FC<CertificateTableProps> = ({ certificates, onDow
                 }} 
                 onClick={() => onDownload?.(cert)}
               >
-                Скачать
+                Download
               </button>
               {cert.status === 'ACTIVE' && (
                 <button 
@@ -108,9 +108,8 @@ const CertificateTable: React.FC<CertificateTableProps> = ({ certificates, onDow
                     borderRadius: '4px',
                     cursor: 'pointer'
                   }} 
-                  onClick={() => onRevoke?.(cert)}
-                >
-                  Отозвать
+                  onClick={() => onRevoke?.(cert)}                >
+                  Revoke
                 </button>
               )}
             </td>

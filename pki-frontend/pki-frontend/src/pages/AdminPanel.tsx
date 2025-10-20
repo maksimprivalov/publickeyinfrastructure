@@ -53,18 +53,18 @@ const AdminPanel: React.FC = () => {
           margin: 0, 
           marginBottom: 8 
         }}>
-          Панель администратора
+          Admin Panel
         </h1>
         <p style={{ 
           fontSize: 16, 
           color: '#6b7280', 
           margin: 0 
         }}>
-          Управление пользователями и центрами сертификации
+          User and Certificate Authorities management
         </p>
       </div>
 
-      {/* Статистические карточки */}
+      {/* Statistical cards */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
@@ -109,7 +109,7 @@ const AdminPanel: React.FC = () => {
                 color: '#6b7280', 
                 margin: 0 
               }}>
-                Всего пользователей
+                Total users
               </p>
             </div>
           </div>
@@ -153,7 +153,7 @@ const AdminPanel: React.FC = () => {
                 color: '#6b7280', 
                 margin: 0 
               }}>
-                Активных пользователей
+                Active users
               </p>
             </div>
           </div>
@@ -197,7 +197,7 @@ const AdminPanel: React.FC = () => {
                 color: '#6b7280', 
                 margin: 0 
               }}>
-                Центров сертификации
+                Certificate Authorities
               </p>
             </div>
           </div>
@@ -241,14 +241,14 @@ const AdminPanel: React.FC = () => {
                 color: '#6b7280', 
                 margin: 0 
               }}>
-                Активных ЦА
+                Active CAs
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Навигация по вкладкам */}
+      {/* Tabs navigation */}
       <div style={{
         backgroundColor: 'white',
         borderRadius: '12px 12px 0 0',
@@ -277,7 +277,7 @@ const AdminPanel: React.FC = () => {
               }
             }}
           >
-            👥 Пользователи
+            👥 Users
           </button>
           <button
             onClick={() => setActiveTab('ca')}
@@ -295,12 +295,12 @@ const AdminPanel: React.FC = () => {
               }
             }}
           >
-            🏢 Центры сертификации
+            🏢 Certificate Authorities
           </button>
         </div>
       </div>
 
-      {/* Контент вкладок */}
+      {/* Content tabs */}
       <div style={{
         backgroundColor: 'white',
         borderRadius: '0 0 12px 12px',

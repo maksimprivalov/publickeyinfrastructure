@@ -76,10 +76,8 @@ class CertificatesApi implements IApi {
   // Выпустить конечный сертификат
   async issueEndEntityCertificate(csr: CreateCSRRequest): Promise<Certificate> {
 
-    const decodedUser = UserApi.getCurrentUser()
-
     const response = await this.post({
-      url: `${this.baseUrl}/issue/ee/${decodedUser?.id}`,
+      url: `${this.baseUrl}/issue/ee/${csr.selectedCAId}`,
       data: csr,
       authenticated: true
     });

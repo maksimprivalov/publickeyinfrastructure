@@ -1,6 +1,5 @@
 package com.app.pki_backend.service.interfaces;
 
-import com.app.pki_backend.dto.certificate.CertificateSigningRequest;
 import com.app.pki_backend.entity.certificates.Certificate;
 
 /**

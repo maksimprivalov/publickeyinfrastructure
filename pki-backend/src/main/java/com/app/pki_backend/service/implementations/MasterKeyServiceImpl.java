@@ -2,21 +2,20 @@ package com.app.pki_backend.service.implementations;
 
 import com.app.pki_backend.service.interfaces.CryptographyService;
 import com.app.pki_backend.service.interfaces.MasterKeyService;
-import com.app.pki_backend.service.interfaces.PrivateKeyService;
-import com.app.pki_backend.repository.CertificateRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.*;
+import java.nio.file.*;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Base64;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Implementation of MasterKeyService for managing master keys.
- * In production, this should integrate with HSM or secure key vault.
+ * ИСПРАВЛЕННАЯ версия MasterKeyService с персистентным хранилищем
  */
 @Service
 public class MasterKeyServiceImpl implements MasterKeyService {
@@ -24,19 +23,39 @@ public class MasterKeyServiceImpl implements MasterKeyService {
     @Autowired
     private CryptographyService cryptographyService;
 
-    @Autowired
-    private PrivateKeyService privateKeyService;
-
-    @Autowired
-    private CertificateRepository certificateRepository;
+    @Value("${pki.master-key.storage-path:./master-keys}")
+    private String masterKeyStoragePath;
 
     @Value("${pki.master-key.current-id:default}")
     private String currentMasterKeyId;
 
-    // In-memory storage for demo purposes
-    // In production, use HSM or secure key vault
-    private final Map<String, SecretKey> masterKeyStorage = new ConcurrentHashMap<>();
     private SecretKey currentMasterKey;
+
+    // КРИТИЧНО: Инициализация при старте приложения
+    @PostConstruct
+    public void init() {
+        try {
+            // Создать директорию для хранения, если не существует
+            Files.createDirectories(Paths.get(masterKeyStoragePath));
+
+            // Попытка загрузить существующий master key
+            Path keyFile = Paths.get(masterKeyStoragePath, currentMasterKeyId + ".key");
+
+            if (Files.exists(keyFile)) {
+                System.out.println("🔑 Loading existing master key from: " + keyFile);
+                currentMasterKey = loadMasterKeyFromFile(keyFile);
+                System.out.println("✅ Master key loaded successfully");
+            } else {
+                System.out.println("🔑 No master key found, generating new one...");
+                currentMasterKey = generateMasterKey();
+                saveMasterKeyToFile(currentMasterKey, keyFile);
+                System.out.println("✅ New master key generated and saved to: " + keyFile);
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("CRITICAL: Failed to initialize master key", e);
+        }
+    }
 
     @Override
     public SecretKey generateMasterKey() {
@@ -46,84 +65,81 @@ public class MasterKeyServiceImpl implements MasterKeyService {
     @Override
     public SecretKey getCurrentMasterKey() {
         if (currentMasterKey == null) {
-            initializeMasterKey();
+            throw new IllegalStateException("Master key not initialized!");
         }
         return currentMasterKey;
     }
 
     @Override
     public void storeMasterKey(SecretKey masterKey, String keyId) {
-        // In production, this should store in HSM or secure key vault
-        masterKeyStorage.put(keyId, masterKey);
+        try {
+            Path keyFile = Paths.get(masterKeyStoragePath, keyId + ".key");
+            saveMasterKeyToFile(masterKey, keyFile);
 
-        if (keyId.equals(currentMasterKeyId)) {
-            currentMasterKey = masterKey;
+            if (keyId.equals(currentMasterKeyId)) {
+                currentMasterKey = masterKey;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to store master key", e);
         }
     }
 
     @Override
     public SecretKey retrieveMasterKey(String keyId) {
-        SecretKey key = masterKeyStorage.get(keyId);
-        if (key == null) {
-            throw new IllegalArgumentException("Master key not found for ID: " + keyId);
+        try {
+            Path keyFile = Paths.get(masterKeyStoragePath, keyId + ".key");
+
+            if (!Files.exists(keyFile)) {
+                throw new IllegalArgumentException("Master key not found for ID: " + keyId);
+            }
+
+            return loadMasterKeyFromFile(keyFile);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve master key: " + keyId, e);
         }
-        return key;
     }
 
     @Override
     public SecretKey rotateMasterKey() {
-        try {
-            // Generate new master key
-            SecretKey newMasterKey = generateMasterKey();
-            String newKeyId = "master-key-" + System.currentTimeMillis();
-
-            // Get old master key
-            SecretKey oldMasterKey = getCurrentMasterKey();
-
-            // Re-encrypt all private keys with new master key
-            certificateRepository.findAll().forEach(certificate -> {
-                if (privateKeyService.hasPrivateKey(certificate)) {
-                    privateKeyService.reEncryptPrivateKey(certificate, oldMasterKey, newMasterKey);
-                }
-            });
-
-            // Store new master key
-            storeMasterKey(newMasterKey, newKeyId);
-            currentMasterKeyId = newKeyId;
-            currentMasterKey = newMasterKey;
-
-            return newMasterKey;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to rotate master key", e);
-        }
+        // TODO: Implement proper key rotation with re-encryption
+        throw new UnsupportedOperationException("Key rotation not yet implemented");
     }
 
     @Override
     public boolean isMasterKeyAvailable() {
+        return currentMasterKey != null;
+    }
+
+    // ============= ПРИВАТНЫЕ МЕТОДЫ ДЛЯ РАБОТЫ С ФАЙЛАМИ =============
+
+    /**
+     * Сохранить master key в файл (Base64 encoded)
+     */
+    private void saveMasterKeyToFile(SecretKey masterKey, Path filePath) throws IOException {
+        String base64Key = Base64.getEncoder().encodeToString(masterKey.getEncoded());
+
+        // Установить строгие права доступа (только владелец может читать)
+        Files.write(filePath, base64Key.getBytes(),
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+
+        // На Unix системах установить права 600
         try {
-            return getCurrentMasterKey() != null;
-        } catch (Exception e) {
-            return false;
+            Files.setPosixFilePermissions(filePath,
+                    PosixFilePermissions.fromString("rw-------"));
+        } catch (UnsupportedOperationException e) {
+            // Windows не поддерживает POSIX permissions
+            System.out.println("⚠️ Cannot set POSIX permissions on this OS");
         }
     }
 
     /**
-     * Initialize master key on startup.
-     * In production, this should retrieve from secure storage.
+     * Загрузить master key из файла
      */
-    private void initializeMasterKey() {
-        try {
-            // Try to retrieve existing master key
-            if (masterKeyStorage.containsKey(currentMasterKeyId)) {
-                currentMasterKey = masterKeyStorage.get(currentMasterKeyId);
-            } else {
-                // Generate new master key if none exists
-                currentMasterKey = generateMasterKey();
-                storeMasterKey(currentMasterKey, currentMasterKeyId);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize master key", e);
-        }
+    private SecretKey loadMasterKeyFromFile(Path filePath) throws IOException {
+        String base64Key = new String(Files.readAllBytes(filePath));
+        byte[] keyBytes = Base64.getDecoder().decode(base64Key);
+        return new SecretKeySpec(keyBytes, "AES");
     }
 }

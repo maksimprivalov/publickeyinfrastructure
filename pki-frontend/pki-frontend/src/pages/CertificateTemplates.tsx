@@ -20,7 +20,7 @@ const CertificateTemplates: React.FC = () => {
       const templateList = await templatesApi.getAllTemplates();
       setTemplates(templateList);
     } catch (err) {
-      setError('Ошибка при загрузке шаблонов');
+      setError('Error loading templates');
       console.error('Error loading templates:', err);
     } finally {
       setLoading(false);
@@ -35,7 +35,7 @@ const CertificateTemplates: React.FC = () => {
       setTemplates(prev => prev.filter(t => t.id !== id));
       alert('Шаблон успешно удален');
     } catch (err) {
-      setError(`Ошибка при удалении шаблона: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+      setError(`Error deleting template: ${err instanceof Error ? err.message : 'Unknown error'}`);
       console.error('Error deleting template:', err);
     }
   };
@@ -47,8 +47,8 @@ const CertificateTemplates: React.FC = () => {
   if (loading) {
     return (
       <div style={{ padding: 32, textAlign: 'center' }}>
-        <h1>Шаблоны сертификатов</h1>
-        <div>Загрузка...</div>
+        <h1>Certificate templates</h1>
+        <div>Loading...</div>
       </div>
     );
   }
@@ -56,7 +56,7 @@ const CertificateTemplates: React.FC = () => {
   return (
     <div style={{ padding: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ margin: 0 }}>Шаблоны сертификатов</h1>
+        <h1 style={{ margin: 0 }}>Certificate templates</h1>
         <div>
           <button
             onClick={loadTemplates}
@@ -70,7 +70,7 @@ const CertificateTemplates: React.FC = () => {
               marginRight: 8
             }}
           >
-            Обновить
+            Refresh
           </button>
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
@@ -83,7 +83,7 @@ const CertificateTemplates: React.FC = () => {
               cursor: 'pointer'
             }}
           >
-            {showCreateForm ? 'Отмена' : 'Создать шаблон'}
+            {showCreateForm ? 'Cancel' : 'Create Template'}
           </button>
         </div>
       </div>
@@ -119,8 +119,8 @@ const CertificateTemplates: React.FC = () => {
           borderRadius: 8,
           color: '#6b7280'
         }}>
-          <p>Шаблоны сертификатов не найдены</p>
-          <p>Создайте шаблон для упрощения выпуска сертификатов</p>
+          <p>Certificate templates not found</p>
+          <p>Create a template to release certificates</p>
         </div>
       ) : (
         <div style={{ backgroundColor: 'white', borderRadius: 8, boxShadow: '0 2px 8px #e0e7ff' }}>
@@ -205,7 +205,7 @@ const CreateTemplateForm: React.FC<{
       alert('Шаблон успешно создан');
       onSuccess();
     } catch (err) {
-      setError(`Ошибка при создании шаблона: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+      setError(`Error creating template: ${err instanceof Error ? err.message : 'Unknown error'}`);
       console.error('Error creating template:', err);
     } finally {
       setLoading(false);
@@ -335,7 +335,7 @@ const CreateTemplateForm: React.FC<{
               cursor: 'pointer'
             }}
           >
-            Отмена
+            Cancel
           </button>
         </div>
       </form>

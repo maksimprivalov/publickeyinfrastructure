@@ -22,8 +22,7 @@ const CAPanel: React.FC = () => {
       const allCAs = await caApi.getAllCAs();
       setCas(Array.isArray(allCAs) ? allCAs : []);
     } catch (err) {
-      setCas([]);
-      setError('Ошибка при загрузке центров сертификации');
+      setCas([]);      setError('Error loading certificate authorities');
       console.error('Error loading CAs:', err);
     } finally {
       setLoading(false);
@@ -43,8 +42,7 @@ const CAPanel: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(`Ошибка при скачивании сертификата ЦА: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+    } catch (err) {      setError(`Error downloading CA certificate: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -52,14 +50,13 @@ const handleRevoke = async (cert: Certificate) => {
   let reason: string | null = null;
 
   // Показываем пользователю список допустимых причин
-  while (true) {
-    reason = prompt(
-      'Укажите причину отзыва сертификата:\n' + REVOCATION_REASONS.join('\n')
+  while (true) {    reason = prompt(
+      'Specify certificate revocation reason:\n' + REVOCATION_REASONS.join('\n')
     );
     if (reason === null) return; // пользователь отменил
     reason = reason.toUpperCase().trim();
     if (REVOCATION_REASONS.includes(reason as typeof REVOCATION_REASONS[number])) break;
-    alert('Неверная причина. Выберите одну из перечисленных.');
+    alert('Invalid reason. Please select one from the list.');
   }
 
   try {
@@ -76,8 +73,7 @@ const handleRevoke = async (cert: Certificate) => {
     );
 
     alert('Сертификат успешно отозван');
-  } catch (err) {
-    setError(`Ошибка при отзыве сертификата: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+  } catch (err) {    setError(`Error revoking certificate: ${err instanceof Error ? err.message : 'Unknown error'}`);
     console.error('Error revoking certificate:', err);
   }
 };
@@ -86,7 +82,7 @@ const handleRevoke = async (cert: Certificate) => {
   return (
     <div style={{ padding: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ margin: 0 }}>Панель центров сертификации</h1>
+        <h1 style={{ margin: 0 }}>Certificate Authority Panel</h1>
         <div>
           <button
             onClick={loadCAs}
@@ -99,7 +95,7 @@ const handleRevoke = async (cert: Certificate) => {
               cursor: 'pointer'
             }}
           >
-            Обновить
+            Refresh
           </button>
         </div>
       </div>
@@ -133,7 +129,7 @@ const handleRevoke = async (cert: Certificate) => {
             <h3 style={{ margin: '0 0 8px 0', color: '#059669' }}>
               {cas.filter(ca => ca.status === 'ACTIVE').length}
             </h3>
-            <p style={{ margin: 0, color: '#6b7280' }}>Активных ЦА</p>
+            <p style={{ margin: 0, color: '#6b7280' }}>Active CAs</p>
           </div>
           
           <div style={{ 
@@ -146,7 +142,7 @@ const handleRevoke = async (cert: Certificate) => {
             <h3 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>
               {cas.filter(ca => ca.status === 'REVOKED').length}
             </h3>
-            <p style={{ margin: 0, color: '#6b7280' }}>Отозванных ЦА</p>
+            <p style={{ margin: 0, color: '#6b7280' }}>Revoked CAs</p>
           </div>
           
           <div style={{ 
@@ -159,7 +155,7 @@ const handleRevoke = async (cert: Certificate) => {
             <h3 style={{ margin: '0 0 8px 0', color: '#3b82f6' }}>
               {cas.filter(ca => ca.type === 'ROOT_CA').length}
             </h3>
-            <p style={{ margin: 0, color: '#6b7280' }}>Корневых ЦА</p>
+            <p style={{ margin: 0, color: '#6b7280' }}>Root CAs</p>
           </div>
           
           <div style={{ 
@@ -172,7 +168,7 @@ const handleRevoke = async (cert: Certificate) => {
             <h3 style={{ margin: '0 0 8px 0', color: '#7c3aed' }}>
               {cas.filter(ca => ca.type === 'INTERMEDIATE_CA').length}
             </h3>
-            <p style={{ margin: 0, color: '#6b7280' }}>Промежуточных ЦА</p>
+            <p style={{ margin: 0, color: '#6b7280' }}>Intermediate CAs</p>
           </div>
         </div>
       </div>
@@ -184,9 +180,8 @@ const handleRevoke = async (cert: Certificate) => {
           backgroundColor: '#f9fafb',
           borderRadius: 8,
           color: '#6b7280'
-        }}>
-          <p>Центры сертификации не найдены</p>
-          <p>Создайте корневой ЦА для начала работы</p>
+        }}>          <p>No certificate authorities found</p>
+          <p>Create a root CA to get started</p>
         </div>
       ) : (
         <CertificateTable 

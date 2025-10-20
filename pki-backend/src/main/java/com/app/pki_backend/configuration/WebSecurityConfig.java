@@ -123,6 +123,8 @@ public class WebSecurityConfig{
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
                 "https://localhost:5173",
+                "https://localhost:3000",
+                "http://localhost:3000",
                 "https://192.168.1.3:8000",
                 "http://localhost:5173",
                 "http://192.168.1.3:8000"
