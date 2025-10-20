@@ -27,6 +27,7 @@ import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
@@ -41,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.crypto.SecretKey;
 import org.springframework.data.domain.Pageable;
 import java.io.ByteArrayOutputStream;
+import java.io.StringReader;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyStore;
@@ -158,8 +160,15 @@ public class CertificateServiceImpl implements CertificateService {
                 );
             }
 
-            // Парсинг CSR для извлечения Subject
-            PKCS10CertificationRequest pkcs10CSR = pemConverter.parseCSR(csr.getCsrContent());
+            PKCS10CertificationRequest pkcs10CSR;
+
+            try (PEMParser p = new PEMParser(new StringReader(csr.getCsrContent()))) {
+                Object obj = p.readObject();
+                if (!(obj instanceof PKCS10CertificationRequest)) {
+                    throw new IllegalArgumentException("Invalid CSR format");
+                }
+                pkcs10CSR = (PKCS10CertificationRequest) obj;
+            }
 
             if (!csrValidator.validateCSRSignature(pkcs10CSR)) {
                 throw new IllegalArgumentException(
@@ -243,8 +252,15 @@ public class CertificateServiceImpl implements CertificateService {
                 throw new IllegalArgumentException("End Entity certificate cannot issue other certificates");
             }
 
-            // Парсинг CSR
-            PKCS10CertificationRequest pkcs10CSR = pemConverter.parseCSR(csr.getCsrContent());
+            PKCS10CertificationRequest pkcs10CSR;
+
+            try (PEMParser p = new PEMParser(new StringReader(csr.getCsrContent()))) {
+                Object obj = p.readObject();
+                if (!(obj instanceof PKCS10CertificationRequest)) {
+                    throw new IllegalArgumentException("Invalid CSR format");
+                }
+                pkcs10CSR = (PKCS10CertificationRequest) obj;
+            }
 
             if (!csrValidator.validateCSRSignature(pkcs10CSR)) {
                 throw new IllegalArgumentException(
