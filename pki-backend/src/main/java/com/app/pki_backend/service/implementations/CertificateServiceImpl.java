@@ -42,6 +42,10 @@ import javax.crypto.SecretKey;
 import org.springframework.data.domain.Pageable;
 import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -793,5 +797,84 @@ public class CertificateServiceImpl implements CertificateService {
         dto.setOrganization(certificate.getOrganization());
         return dto;
     }
+    public Path generateHttpsKeystore(String serverName, Long issuerId, String password) {
+        try {
+            // 1️⃣ Проверяем, есть ли активный серверный сертификат под нужный CN
+            String expectedSubject = "CN=" + serverName + ", O=PKI Server, C=RS";
+            List<Certificate> existing = certificateRepository.findByType(CertificateType.END_ENTITY)
+                    .stream()
+                    .filter(c -> c.getStatus() == CertificateStatus.ACTIVE)
+                    .filter(c -> expectedSubject.equals(c.getSubject()))
+                    .toList();
 
+            Certificate serverCert;
+            if (!existing.isEmpty()) {
+                serverCert = existing.get(0);
+                System.out.println("✅ Found existing server certificate for HTTPS: " + serverCert.getSubject());
+            } else {
+                // 2️⃣ Выпускаем новый серверный сертификат
+                Certificate issuer = certificateRepository.findById(issuerId)
+                        .orElseThrow(() -> new IllegalArgumentException("Issuer not found for HTTPS generation"));
+                serverCert = issueServerCertificate(serverName, issuer);
+                System.out.println("✅ Issued new server certificate for HTTPS: " + serverCert.getSubject());
+            }
+
+            // 3️⃣ Экспортируем PKCS#12 c цепочкой сертификатов
+            byte[] p12 = exportAsPkcs12WithChain(serverCert.getId(), password);
+
+            // 4️⃣ Сохраняем keystore.p12 в локальную папку
+            Path keystoreDir = Paths.get("keystore");
+            Files.createDirectories(keystoreDir);
+            Path p12Path = keystoreDir.resolve("keystore.p12");
+            Files.write(p12Path, p12, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+            System.out.println("✅ HTTPS keystore generated at: " + p12Path.toAbsolutePath());
+            return p12Path;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate HTTPS keystore", e);
+        }
+    }
+
+    /**
+     * Экспортирует PKCS#12 файл с цепочкой сертификатов (сервер + CA + Root)
+     */
+    public byte[] exportAsPkcs12WithChain(Long certId, String password) {
+        try {
+            Certificate cert = certificateRepository.findById(certId)
+                    .orElseThrow(() -> new IllegalArgumentException("Certificate not found for PKCS12 export"));
+
+            SecretKey masterKey = masterKeyService.getCurrentMasterKey();
+            PrivateKey privateKey = privateKeyService.retrievePrivateKey(cert, masterKey);
+
+            java.security.cert.Certificate[] chain = buildCertificateChain(cert);
+
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(null, null);
+            keyStore.setKeyEntry("pki-server", privateKey, password.toCharArray(), chain);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            keyStore.store(baos, password.toCharArray());
+            auditLogger.log("EXPORT_PKCS12_WITH_CHAIN certId=" + certId, "system");
+
+            return baos.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to export PKCS12 with chain", e);
+        }
+    }
+
+    /**
+     * Собирает цепочку сертификатов от конечного до Root CA.
+     */
+    private java.security.cert.Certificate[] buildCertificateChain(Certificate leaf) throws Exception {
+        List<java.security.cert.Certificate> chain = new java.util.ArrayList<>();
+        chain.add(pemConverter.parseCertificate(leaf.getCertificateData()));
+
+        Certificate current = leaf.getIssuerCertificate();
+        while (current != null) {
+            chain.add(pemConverter.parseCertificate(current.getCertificateData()));
+            current = current.getIssuerCertificate();
+        }
+        return chain.toArray(new java.security.cert.Certificate[0]);
+    }
 }

@@ -7,6 +7,8 @@ import com.app.pki_backend.entity.certificates.CertificateType;
 import org.springframework.data.domain.Page;
 
 import org.springframework.data.domain.Pageable;
+
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,6 +62,8 @@ public interface CertificateService {
     byte[] exportAsPkcs12(Long certId, String password);
 
     Page<Certificate> search(CertificateStatus status, CertificateType type, String organization, Pageable pageable);
+
+    Path generateHttpsKeystore(String serverName, Long issuerId, String ksPassword);
 
 //    Optional<User> findById(Integer userId);
 
