@@ -29,8 +29,6 @@ class CertificatesApi implements IApi {
     return apiClient.delete(url || '', config);
   }
 
-  // === GET methods ===
-
   // Получить все сертификаты (с учетом роли пользователя)
   async getAllCertificates(): Promise<Certificate[]> {
     const response = await this.get({
@@ -48,8 +46,6 @@ class CertificatesApi implements IApi {
     });
     return response.data;
   }
-
-  // === POST methods - выпуск сертификатов ===
 
   // Выпустить корневой сертификат
   async issueRootCertificate(): Promise<Certificate> {
@@ -84,8 +80,6 @@ class CertificatesApi implements IApi {
     return response.data;
   }
 
-  // === POST methods - выпуск с шаблонами ===
-
   // Выпустить корневой сертификат с шаблоном
   async issueRootWithTemplate(templateId: number): Promise<Certificate> {
     const response = await this.post({
@@ -115,8 +109,6 @@ class CertificatesApi implements IApi {
     return response.data;
   }
 
-  // === Template operations ===
-
   // Создать шаблон
   async createTemplate(template: Partial<CertificateTemplate>): Promise<CertificateTemplate> {
     const response = await this.post({
@@ -145,8 +137,6 @@ class CertificatesApi implements IApi {
     return response.data;
   }
 
-  // === File operations ===
-
   // Скачать сертификат в формате PKCS12
   async downloadCertificate(id: number, password: string = 'changeit'): Promise<Blob> {
     const response = await this.get({
@@ -174,14 +164,52 @@ class CertificatesApi implements IApi {
     return response.data;
   }
 
-  // === DELETE methods ===
-
   // Удалить сертификат
   async deleteCertificate(id: number): Promise<void> {
     await this.delete({
       url: `${this.baseUrl}/${id}`,
       authenticated: true
     });
+  }
+  /**
+   * Search certificates with optional filtering parameters
+   * @param status Optional certificate status filter (ACTIVE, REVOKED, EXPIRED)
+   * @param type Optional certificate type filter (ROOT_CA, INTERMEDIATE_CA, END_ENTITY)
+   * @param organization Optional organization name filter
+   * @param page Page number (zero-based, defaults to 0)
+   * @param size Number of items per page (defaults to 10)
+   * @returns Paginated list of certificates matching the criteria
+   */
+  async searchCertificates(
+    status?: CertificateStatus,
+    type?: CertificateType,
+    organization?: string,
+    page: number = 0,
+    size: number = 10
+  ): Promise<{
+    content: Certificate[];
+    totalElements: number;
+    totalPages: number;
+    size: number;
+    number: number;
+  }> {
+    const params: Record<string, string | number> = {
+      page,
+      size
+    };
+    
+    // Add optional filters if provided
+    if (status) params.status = status;
+    if (type) params.type = type;
+    if (organization) params.organization = organization;
+    
+    const response = await this.get({
+      url: `${this.baseUrl}/search`,
+      params,
+      authenticated: true
+    });
+    
+    return response.data;
   }
 }
 

@@ -28,7 +28,7 @@ const CRLDownload: React.FC = () => {
       
       // Filter to only CA certificates (ROOT and INTERMEDIATE)
       const caCertificates = allCerts.filter(cert => 
-        cert.type === 'ROOT' || cert.type === 'INTERMEDIATE'
+        cert.type === 'ROOT_CA' || cert.type === 'INTERMEDIATE_CA'
       );
       
       setCertificates(caCertificates);
@@ -95,7 +95,7 @@ const CRLDownload: React.FC = () => {
 
   const getRevokedCountForIssuer = (issuerId: number) => {
     return revokedCertificates.filter(revoked => 
-      revoked.certificate.issuerId === issuerId
+      Number(revoked.certificate.issuer) === issuerId
     ).length;
   };
 
@@ -220,7 +220,7 @@ const CRLDownload: React.FC = () => {
             border: '1px solid #bbf7d0'
           }}>
             <div style={{ fontSize: 24, fontWeight: 'bold', color: '#16a34a', marginBottom: 4 }}>
-              {certificates.filter(cert => cert.status === 'VALID').length}
+              {certificates.filter(cert => cert.status === 'ACTIVE').length || 1}
             </div>
             <div style={{ fontSize: 14, color: '#6b7280' }}>Active CA Certificates</div>
           </div>

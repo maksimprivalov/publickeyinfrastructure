@@ -152,7 +152,7 @@ const Navigation: React.FC = () => {
                 <>
                   <NavLink to="/admin">Admin Panel</NavLink>
                   <NavLink to="/users">Users</NavLink>
-                  <NavLink to="/ca">Certificate Authorities</NavLink>
+                  <NavLink to="/crl">CRL</NavLink>
                   <NavLink to="/issue">Issue Certificate</NavLink>
                   <NavLink to="/templates">Templates</NavLink>
                   <NavLink to="/upload">Upload CSR</NavLink>
@@ -161,13 +161,16 @@ const Navigation: React.FC = () => {
               {role === 'CAUser' && (
                 <>
                   <NavLink to="/ca-panel">CA Panel</NavLink>
+                  <NavLink to="/crl">CRL</NavLink>
                   <NavLink to="/issue">Issue Certificate</NavLink>
                   <NavLink to="/upload">Upload CSR</NavLink>
+                  <NavLink to="/search">Search 🔍</NavLink>
                 </>
               )}
               {role === 'User' && (
                 <>
                   <NavLink to="/user">My Certificates</NavLink>
+                  <NavLink to="/search">Search 🔍</NavLink>
                 </>
               )}
 
