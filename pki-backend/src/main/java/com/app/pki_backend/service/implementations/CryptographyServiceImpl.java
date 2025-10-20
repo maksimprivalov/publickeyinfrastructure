@@ -1,6 +1,5 @@
 package com.app.pki_backend.service.implementations;
 
-import com.app.pki_backend.dto.certificate.CertificateSigningRequest;
 import com.app.pki_backend.service.interfaces.CryptographyService;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -13,7 +12,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import java.math.BigInteger;
 import java.security.*;
-import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.util.Base64;

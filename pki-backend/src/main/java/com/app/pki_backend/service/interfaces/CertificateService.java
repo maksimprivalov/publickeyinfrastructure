@@ -1,6 +1,6 @@
 package com.app.pki_backend.service.interfaces;
 
-import com.app.pki_backend.dto.certificate.CertificateSigningRequest;
+import com.app.pki_backend.entity.certificates.CertificateSigningRequest;
 import com.app.pki_backend.entity.certificates.Certificate;
 import com.app.pki_backend.entity.certificates.CertificateStatus;
 import com.app.pki_backend.entity.certificates.CertificateType;
@@ -8,7 +8,6 @@ import org.springframework.data.domain.Page;
 
 import org.springframework.data.domain.Pageable;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**

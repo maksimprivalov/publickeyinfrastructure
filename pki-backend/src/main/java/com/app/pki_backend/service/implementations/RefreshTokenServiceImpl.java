@@ -21,6 +21,11 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     public RefreshToken createRefreshToken(User user) {
+
+        // ИСПРАВЛЕНИЕ: Удаляем старый refresh token если существует
+        // Это необходимо из-за UNIQUE constraint на user_id
+        refreshTokenRepository.deleteByUser(user);
+
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
         refreshToken.setToken(tokenUtils.generateRefreshToken(user));

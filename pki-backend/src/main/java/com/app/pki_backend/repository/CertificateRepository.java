@@ -32,9 +32,14 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long>,
     @Query("SELECT c FROM Certificate c WHERE c.type IN (com.app.pki_backend.entity.certificates.CertificateType.ROOT_CA, com.app.pki_backend.entity.certificates.CertificateType.INTERMEDIATE_CA) AND c.status = com.app.pki_backend.entity.certificates.CertificateStatus.ACTIVE")
     List<Certificate> findActiveCaCertificates();
 
-
     @Query("SELECT c FROM Certificate c WHERE c.validTo <= :expirationDate AND c.status = 'ACTIVE'")
     List<Certificate> findExpiringCertificates(@Param("expirationDate") LocalDateTime expirationDate);
+
+    @Query("SELECT c FROM Certificate c LEFT JOIN FETCH c.issuerCertificate WHERE c.type = :type")
+    List<Certificate> findByTypeWithIssuer(@Param("type") CertificateType type);
+
+    @Query("SELECT c FROM Certificate c LEFT JOIN FETCH c.issuerCertificate")
+    List<Certificate> findAllWithIssuer();
 
     List<Certificate> findByType(CertificateType type);
 

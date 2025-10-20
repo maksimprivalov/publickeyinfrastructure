@@ -1,6 +1,7 @@
 package com.app.pki_backend.controller;
 
-import com.app.pki_backend.dto.certificate.CertificateSigningRequest;
+import com.app.pki_backend.dto.certificate.CSRRequestDTO;
+import com.app.pki_backend.entity.certificates.CertificateSigningRequest;
 import com.app.pki_backend.entity.certificates.Certificate;
 import com.app.pki_backend.entity.certificates.CertificateStatus;
 import com.app.pki_backend.entity.certificates.CertificateTemplate;
@@ -12,6 +13,7 @@ import com.app.pki_backend.service.implementations.RevocationServiceImpl;
 import com.app.pki_backend.service.interfaces.UserService;
 import com.app.pki_backend.util.TokenUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -78,6 +80,7 @@ public class CertificateController {
 
         return ResponseEntity.ok(certificates);
     }
+
     // === GET certificate by id ===
     @GetMapping("/{id}")
     public ResponseEntity<Certificate> getCertificateById(@PathVariable Long id) {
@@ -97,18 +100,15 @@ public class CertificateController {
         }
     }
 
-//    Do not issue ROOT certificate with API
-//    @PostMapping("/issue/root")
-//    public ResponseEntity<Certificate> issueRoot() {
-//        Certificate cert = certificateService.issueRootCertificate();
-//        return ResponseEntity.status(HttpStatus.CREATED).body(cert);
-//    }
-
+    /**
+     * Issue Intermediate CA certificate
+     * FIXED: Now uses CSRRequestDTO instead of Entity
+     */
     @PostMapping("/issue/intermediate/{issuerId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('CAUSER')")
     public ResponseEntity<Certificate> issueIntermediate(
             @PathVariable Long issuerId,
-            @RequestBody CertificateSigningRequest csr,
+            @Valid @RequestBody CSRRequestDTO csrRequest,
             HttpServletRequest request) {
 
         String token = tokenUtils.getToken(request);
@@ -122,20 +122,28 @@ public class CertificateController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
-        csr.setRequestedBy(currentUser);
-
         Certificate issuer = certificateService.findById(issuerId)
                 .orElseThrow(() -> new IllegalArgumentException("Issuer not found"));
+
+        // Create CSR entity from DTO
+        CertificateSigningRequest csr = new CertificateSigningRequest();
+        csr.setCsrContent(csrRequest.getCsrContent());
+        csr.setRequestedBy(currentUser);
+        csr.setSelectedCA(issuer);
 
         Certificate cert = certificateService.issueIntermediateCertificate(csr, issuer);
         return ResponseEntity.status(HttpStatus.CREATED).body(cert);
     }
 
+    /**
+     * Issue End-Entity certificate
+     * FIXED: Now uses CSRRequestDTO instead of Entity
+     */
     @PostMapping("/issue/ee/{issuerId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('CAUSER')")
     public ResponseEntity<Certificate> issueEndEntity(
             @PathVariable Long issuerId,
-            @RequestBody CertificateSigningRequest csr,
+            @Valid @RequestBody CSRRequestDTO csrRequest,
             HttpServletRequest request) {
 
         String token = tokenUtils.getToken(request);
@@ -149,14 +157,19 @@ public class CertificateController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
-        csr.setRequestedBy(currentUser);
-
         Certificate issuer = certificateService.findById(issuerId)
                 .orElseThrow(() -> new IllegalArgumentException("Issuer not found"));
+
+        // Create CSR entity from DTO
+        CertificateSigningRequest csr = new CertificateSigningRequest();
+        csr.setCsrContent(csrRequest.getCsrContent());
+        csr.setRequestedBy(currentUser);
+        csr.setSelectedCA(issuer);
 
         Certificate cert = certificateService.issueEndEntityCertificate(csr, issuer);
         return ResponseEntity.status(HttpStatus.CREATED).body(cert);
     }
+
     @PostMapping("/issue/root/template/{templateId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Certificate> issueRootWithTemplate(@PathVariable Long templateId) {
@@ -257,6 +270,7 @@ public class CertificateController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
     @GetMapping("/search")
     public ResponseEntity<Page<Certificate>> searchCertificates(
             @RequestParam(required = false) CertificateStatus status,
