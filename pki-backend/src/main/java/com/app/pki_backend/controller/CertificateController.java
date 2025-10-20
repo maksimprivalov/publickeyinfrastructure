@@ -1,6 +1,7 @@
 package com.app.pki_backend.controller;
 
 import com.app.pki_backend.dto.certificate.CSRRequestDTO;
+import com.app.pki_backend.dto.certificate.CertificateDTO;
 import com.app.pki_backend.entity.certificates.CertificateSigningRequest;
 import com.app.pki_backend.entity.certificates.Certificate;
 import com.app.pki_backend.entity.certificates.CertificateStatus;
@@ -78,6 +79,13 @@ public class CertificateController {
                 break;
         }
 
+        return ResponseEntity.ok(certificates);
+    }
+
+    @GetMapping("/getMyCertificates/{ownerId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CAUSER', 'USER')")
+    public ResponseEntity<List<CertificateDTO>> getMyCertificates(@PathVariable Long ownerId) {
+        List<CertificateDTO> certificates = certificateService.getAllCertificatesByOwner(ownerId);
         return ResponseEntity.ok(certificates);
     }
 
@@ -231,6 +239,12 @@ public class CertificateController {
         headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=certificate_" + id + ".p12");
 
         return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("getByOwner/{ownerId}")
+    public ResponseEntity<List<Certificate>> getCertificatesByOwner(@PathVariable Long ownerId) {
+        List<Certificate> certificates = certificateService.findAllByOwnerId(Math.toIntExact(ownerId));
+        return ResponseEntity.ok(certificates);
     }
 
     @PostMapping("/csr/upload/{issuerId}")

@@ -1,5 +1,6 @@
 package com.app.pki_backend.service.implementations;
 
+import com.app.pki_backend.dto.certificate.CertificateDTO;
 import com.app.pki_backend.entity.certificates.CertificateSigningRequest;
 import com.app.pki_backend.entity.certificates.Certificate;
 import com.app.pki_backend.entity.certificates.CertificateStatus;
@@ -774,4 +775,23 @@ public class CertificateServiceImpl implements CertificateService {
                 pageable
         );
     }
+
+    public List<CertificateDTO> getAllCertificatesByOwner(Long ownerId) {
+        List<Certificate> certificates = certificateRepository.findByOwnerId(Math.toIntExact(ownerId));
+        return certificates.stream().map(this::fromEntity).toList();
+    }
+
+    private CertificateDTO fromEntity(Certificate certificate) {
+        CertificateDTO dto = new CertificateDTO();
+        dto.setId(certificate.getId());
+        dto.setSubject(certificate.getSubject());
+        dto.setIssuerId(certificate.getIssuerCertificate().getId());
+        dto.setValidFrom(certificate.getValidFrom());
+        dto.setValidTo(certificate.getValidTo());
+        dto.setType(certificate.getType().toString());
+        dto.setStatus(certificate.getStatus());
+        dto.setOrganization(certificate.getOrganization());
+        return dto;
+    }
+
 }
