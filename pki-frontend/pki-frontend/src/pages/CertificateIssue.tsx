@@ -27,7 +27,6 @@ const CertificateIssue: React.FC = () => {
   useEffect(() => {
     loadCAs();
   }, []);
-
   const loadCAs = async () => {
     try {
       const cas = await caApi.getAllCAs();
@@ -35,7 +34,7 @@ const CertificateIssue: React.FC = () => {
       setAvailableCAs(activeCAs);
       if (activeCAs.length > 0) setSelectedCAId(activeCAs[0].id);
     } catch (err) {
-      setError('Ошибка при загрузке ЦА');
+      setError('Error loading CAs');
       console.error('Error loading CAs:', err);
     }
   };
@@ -45,10 +44,8 @@ const CertificateIssue: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      setError(null);
-
-      if (!CSRFormContent.commonName || !CSRFormContent.organization) {
-        setError('Введите CN и организацию.');
+      setError(null);      if (!CSRFormContent.commonName || !CSRFormContent.organization) {
+        setError('Please enter CN and organization.');
         return;
       }
 
@@ -58,23 +55,21 @@ const CertificateIssue: React.FC = () => {
         email: CSRFormContent.email || '',
       });
 
-      setCsrContent(pem);
-      setSuccess('CSR успешно сгенерирован!');
+      setCsrContent(pem);      setSuccess('CSR successfully generated!');
     } catch (err: any) {
-      setError(`Ошибка при генерации CSR: ${err.message}`);
+      setError(`Error generating CSR: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  /** ✅ Выпуск сертификата **/
-  const handleIssueCertificate = async () => {
+  /** ✅ Выпуск сертификата **/  const handleIssueCertificate = async () => {
     if (!selectedCAId) {
-      setError('Выберите ЦА');
+      setError('Please select a CA');
       return;
     }
     if (!csrContent.trim()) {
-      setError('Сначала сгенерируйте CSR');
+      setError('Generate CSR first');
       return;
     }
 
@@ -87,20 +82,18 @@ const CertificateIssue: React.FC = () => {
         await certificatesApi.issueIntermediateCertificate({
           csrContent: csrContent.trim(),
           selectedCAId,
-        });
-        setSuccess('Промежуточный сертификат успешно выпущен!');
+        });        setSuccess('Intermediate certificate successfully issued!');
         loadCAs();
       } else {
         await certificatesApi.issueEndEntityCertificate({
           csrContent: csrContent.trim(),
           selectedCAId,
         });
-        setSuccess('Конечный сертификат успешно выпущен!');
+        setSuccess('End entity certificate successfully issued!');
       }
 
       setCsrContent('');
-    } catch (err) {
-      setError(`Ошибка: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+    } catch (err) {      setError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -108,7 +101,7 @@ const CertificateIssue: React.FC = () => {
 
   return (
     <div style={{ padding: 32 }}>
-      <h1>Выпуск сертификатов</h1>
+      <h1>Certificate Issuance</h1>
 
       {/* Ошибки */}
       {error && (
@@ -187,9 +180,8 @@ const CertificateIssue: React.FC = () => {
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
             Selected issuer certificate:
-          </label>
-          {availableCAs.length === 0 ? (
-            <div style={{ color: '#6b7280' }}>Нет активных ЦА. Создайте корневой ЦА.</div>
+          </label>          {availableCAs.length === 0 ? (
+            <div style={{ color: '#6b7280' }}>No active CAs. Create a root CA first.</div>
           ) : (
             <select
               value={selectedCAId || ''}
@@ -291,14 +283,14 @@ const CertificateIssue: React.FC = () => {
               cursor: loading ? 'not-allowed' : 'pointer',
             }}
           >
-            {loading ? 'Генерация...' : 'Сгенерировать CSR'}
+            {loading ? 'Generating...' : 'Generate CSR'}
           </button>
         </form>
 
         {/* ✅ Поле CSR */}
         <div style={{ marginTop: 20 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
-            CSR (PEM формат)
+            CSR (PEM format)
           </label>
           <textarea
             readOnly
@@ -338,12 +330,11 @@ const CertificateIssue: React.FC = () => {
             fontSize: 16,
             fontWeight: 600,
           }}
-        >
-          {loading
-            ? 'Выпускается...'
-            : `Выпустить ${
-                certificateType === 'intermediate' ? 'промежуточный' : 'конечный'
-              } сертификат`}
+        >          {loading
+            ? 'Issuing...'
+            : `Issue ${
+                certificateType === 'intermediate' ? 'intermediate' : 'end-entity'
+              } certificate`}
         </button>
       </div>
     </div>

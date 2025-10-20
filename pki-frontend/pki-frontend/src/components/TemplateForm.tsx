@@ -308,7 +308,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({ onSubmit, onCancel }) => {
               opacity: loading ? 0.6 : 1
             }}
           >
-            Отмена
+            Cancel
           </button>
           
           <button

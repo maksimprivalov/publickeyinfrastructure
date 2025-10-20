@@ -249,7 +249,7 @@ const CertificateForm: React.FC<CertificateFormProps> = ({ onSubmit, onCancel })
               opacity: loading ? 0.6 : 1
             }}
           >
-            Отмена
+            Cancel
           </button>
           
           <button

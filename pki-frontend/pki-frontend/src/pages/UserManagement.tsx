@@ -93,8 +93,8 @@ const UserManagement: React.FC = () => {
   if (loading) {
     return (
       <div style={{ padding: 32, textAlign: 'center' }}>
-        <h2>Управление пользователями</h2>
-        <div>Загрузка...</div>
+        <h2>User management</h2>
+        <div>Loading...</div>
       </div>
     );
   }
@@ -178,15 +178,14 @@ const UserManagement: React.FC = () => {
       )}
 
       {/* Таблица пользователей */}
-      {users.length === 0 ? (
-        <div style={{ 
+      {users.length === 0 ? (        <div style={{ 
           textAlign: 'center', 
           padding: 40,
           backgroundColor: '#f9fafb',
           borderRadius: 8,
           color: '#6b7280'
         }}>
-          <p>Пользователи не найдены</p>
+          <p>No users found</p>
         </div>
       ) : (
         <div style={{ 

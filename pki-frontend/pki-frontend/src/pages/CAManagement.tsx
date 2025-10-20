@@ -17,8 +17,7 @@ const CAManagement: React.FC = () => {
       setError(null);
       const allCAs = await caApi.getAllCAs();
       setCas(allCAs);
-    } catch (err) {
-      setError('Ошибка при загрузке центров сертификации');
+    } catch (err) {      setError('Error loading certificate authorities');
       console.error('Error loading CAs:', err);
     } finally {
       setLoading(false);
@@ -50,8 +49,8 @@ const CAManagement: React.FC = () => {
   if (loading) {
     return (
       <div style={{ padding: 32, textAlign: 'center' }}>
-        <h1>Управление центрами сертификации</h1>
-        <div>Загрузка...</div>
+        <h1>Active certificates</h1>
+        <div>Loading...</div>
       </div>
     );
   }
@@ -59,7 +58,7 @@ const CAManagement: React.FC = () => {
   return (
     <div style={{ padding: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ margin: 0 }}>Управление центрами сертификации</h1>
+        <h1 style={{ margin: 0 }}>Certificate management</h1>
         <div>
           <button
             onClick={loadCAs}
@@ -72,7 +71,7 @@ const CAManagement: React.FC = () => {
               cursor: 'pointer'
             }}
           >
-            Обновить
+            Refresh
           </button>
         </div>
       </div>
@@ -106,12 +105,12 @@ const CAManagement: React.FC = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ backgroundColor: '#f1f5f9' }}>
               <tr>
-                <th style={{ padding: 12, textAlign: 'left' }}>Тип</th>
-                <th style={{ padding: 12, textAlign: 'left' }}>Субъект</th>
-                <th style={{ padding: 12, textAlign: 'left' }}>Серийный номер</th>
-                <th style={{ padding: 12, textAlign: 'left' }}>Действителен до</th>
-                <th style={{ padding: 12, textAlign: 'left' }}>Статус</th>
-                <th style={{ padding: 12, textAlign: 'left' }}>Организация</th>
+                <th style={{ padding: 12, textAlign: 'left' }}>Type</th>
+                <th style={{ padding: 12, textAlign: 'left' }}>Subject</th>
+                <th style={{ padding: 12, textAlign: 'left' }}>Serial number</th>
+                <th style={{ padding: 12, textAlign: 'left' }}>Valid unitl</th>
+                <th style={{ padding: 12, textAlign: 'left' }}>Status</th>
+                <th style={{ padding: 12, textAlign: 'left' }}>Organization</th>
               </tr>
             </thead>
             <tbody>
